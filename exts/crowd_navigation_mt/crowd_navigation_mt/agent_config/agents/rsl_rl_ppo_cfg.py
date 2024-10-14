@@ -11,8 +11,8 @@ class PPOBaseCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 1500
     save_interval = 50
-    experiment_name = "navigation_template"
-    wandb_project = "navigation_template"
+    experiment_name = "crowd_navigation_mt"
+    wandb_project = "crowd_navigation_mt"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,

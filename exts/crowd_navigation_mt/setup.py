@@ -1,4 +1,4 @@
-"""Installation script for the 'navigation_template' python package."""
+"""Installation script for the 'crowd_navigation_mt' python package."""
 
 import os
 import toml
@@ -18,8 +18,8 @@ INSTALL_REQUIRES = [
 
 # Installation operation
 setup(
-    name="navigation_template",
-    packages=["navigation_template"],
+    name="crowd_navigation_mt",
+    packages=["crowd_navigation_mt"],
     author=EXTENSION_TOML_DATA["package"]["author"],
     maintainer=EXTENSION_TOML_DATA["package"]["maintainer"],
     url=EXTENSION_TOML_DATA["package"]["repository"],

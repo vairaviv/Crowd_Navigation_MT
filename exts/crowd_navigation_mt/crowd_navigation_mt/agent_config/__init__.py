@@ -5,7 +5,7 @@
 
 import gymnasium as gym
 
-from navigation_template.env_config import env_cfg_base
+from crowd_navigation_mt.env_config import env_cfg_base
 from . import agents
 
 ##
