@@ -52,7 +52,7 @@ from datetime import datetime
 from rsl_rl.runners import OnPolicyRunner
 
 # Import extensions to set up environment tasks
-import navigation_template  # noqa: F401
+import crowd_navigation_mt  # noqa: F401
 
 from omni.isaac.lab.envs import (
     DirectMARLEnv,
