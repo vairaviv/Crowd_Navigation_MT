@@ -51,9 +51,6 @@ from datetime import datetime
 
 from rsl_rl.runners import OnPolicyRunner
 
-# Import extensions to set up environment tasks
-import crowd_navigation_mt  # noqa: F401
-
 from omni.isaac.lab.envs import (
     DirectMARLEnv,
     DirectMARLEnvCfg,
@@ -68,7 +65,11 @@ from omni.isaac.lab_tasks.utils.hydra import hydra_task_config
 from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 
 # Import extensions to set up environment tasks
-import ext_template.tasks  # noqa: F401
+# import ext_template.tasks  # noqa: F401
+
+
+# Import extensions to set up environment tasks
+import crowd_navigation_mt  # noqa: F401
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True

@@ -5,7 +5,7 @@
 
 import gymnasium as gym
 
-from crowd_navigation_mt.env_config import env_cfg_base
+from crowd_navigation_mt.env_config import env_cfg_base # , crowd_navigation_stat_obs_base_env_cfg
 from . import agents
 
 ##
@@ -36,3 +36,13 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPOCfgDEV",
     },
 )
+
+# gym.register(
+#     id="Isaac-Navigation-CrowdNav-PPO-Anymal-D-Train",
+#     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+#     kwargs={
+#         "env_cfg_entry_point": crowd_navigation_stat_obs_base_env_cfg.CrowdNavigationEnvCfg,
+#         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPOTeacheConvCfg",
+
+#     }
+# )

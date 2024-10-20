@@ -10,7 +10,7 @@ from dataclasses import MISSING
 
 import omni.isaac.lab.sim as sim_utils
 from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg
-from omni.isaac.lab.envs.manager_based_rl_env_cfg import ManagerBasedRLEnvCfg as RLTaskEnvCfg
+from omni.isaac.lab.envs.manager_based_rl_env_cfg import ManagerBasedRLEnvCfg 
 from omni.isaac.lab.managers import CurriculumTermCfg as CurrTerm
 from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
@@ -428,7 +428,7 @@ class CurriculumCfg:
 
 
 @configclass
-class CrowdNavigationEnvCfg(RLTaskEnvCfg):
+class CrowdNavigationEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
