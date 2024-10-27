@@ -1,3 +1,1 @@
-from .rsl_rl_cfg import (
-    RslRlPpoActorCriticBetaRecurrentLidarCnnCfg
-)
+from .wrappers import *

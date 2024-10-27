@@ -1,16 +1,17 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
+# Copyright (c) 2022-2024, The ISAACLAB Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import annotations
 
+import os
 import math
 from dataclasses import MISSING
 
 import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg
-from omni.isaac.lab.envs.manager_based_rl_env_cfg import ManagerBasedRLEnvCfg 
+from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
+from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
 from omni.isaac.lab.managers import CurriculumTermCfg as CurrTerm
 from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
@@ -24,17 +25,22 @@ from omni.isaac.lab.terrains import TerrainImporterCfg
 from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
-import crowd_navigation_mt.mdp as mdp  # noqa: F401, F403
-from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR as ORBIT_ASSETS_DATA_DIR
-import os
+import crowd_navigation_mt.mdp as mdp 
+# import crowd_navigation_mt.sensors import patterns
+from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
 
 ##
 # Pre-defined configs
 ##
 from omni.isaac.lab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
-# from crowd_navigation_mt.terrains.test_terrains_cfg import OBS_TERRAINS_CFG
-from nav_tasks.sensors import adjust_ray_caster_camera_image_size, ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg
+from crowd_navigation_mt.assets.simple_obstacles import (
+    OBS_CFG,
+    EMPTY_OBS_CFG,
+    CYLINDER_HUMANOID_CFG,
+    MY_RAY_CASTER_MARKER_CFG,
+    WALL_CFG,
+)
 
 """To improve: we have 3 separate goal_reached functions, one for logging, one for reward and one for termination"""
 
@@ -57,22 +63,44 @@ ISAAC_GYM_JOINT_NAMES = [
     "RH_KFE",
 ]
 
-
-OBSERVATION_HISTORY_CLASS = mdp.observations.ObservationHistory(history_length_actions=1, history_length_positions=20)
+OBSERVATION_HISTORY_CLASS = mdp.observations.ObservationHistory(history_length_actions=1, history_length_positions=10)
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 
-from crowd_navigation_mt.terrains.config.rough import ROUGH_TERRAINS_CFG, OBS_TERRAINS_CFG  # isort: skip
+from crowd_navigation_mt.terrains.config.rough import (
+    ROUGH_TERRAINS_CFG,
+    OBS_TERRAINS_CFG,
+    OBS_TERRAINS_DYNOBS_CFG,
+)  # isort: skip
 
 
 @configclass
-class StatObsScene(InteractiveSceneCfg):
+class FlatWallObsScene(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
+
+    # terrain = TerrainImporterCfg(
+    #     prim_path="/World/ground",
+    #     terrain_type="usd",
+    #     usd_path=os.path.join(ISAACLAB_ASSETS_DATA_DIR, "Terrains", "wall_terrain.usd"),
+    #     max_init_terrain_level=1,
+    #     collision_group=-1,
+    #     physics_material=sim_utils.RigidBodyMaterialCfg(
+    #         friction_combine_mode="multiply",
+    #         restitution_combine_mode="multiply",
+    #         static_friction=1.0,
+    #         dynamic_friction=0.9,
+    #     ),
+    #     visual_material=sim_utils.MdlFileCfg(
+    #         mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
+    #         project_uvw=True,
+    #     ),
+    #     debug_vis=False,
+    #     # usd_uniform_env_spacing=10.0,  # 10m spacing between environment origins in the usd environment
+    # )
 
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="generator",
-        terrain_generator=OBS_TERRAINS_CFG,
-        max_init_terrain_level=2,
+        terrain_generator=OBS_TERRAINS_DYNOBS_CFG,
         collision_group=-1,
         # env_spacing=8.0,
         physics_material=sim_utils.RigidBodyMaterialCfg(
@@ -91,12 +119,15 @@ class StatObsScene(InteractiveSceneCfg):
     # robots
     robot: ArticulationCfg = MISSING
 
+    # obstacles:
+    obstacle: AssetBaseCfg = MISSING
+
     # sensors
     foot_scanner_lf = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/LF_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=FootScanPatternCfg(),
+        pattern_cfg=patterns.FootScanPatternCfg(),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         max_distance=100.0,
@@ -106,7 +137,7 @@ class StatObsScene(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/RF_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=FootScanPatternCfg(),
+        pattern_cfg=patterns.FootScanPatternCfg(),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         max_distance=100.0,
@@ -116,7 +147,7 @@ class StatObsScene(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/LH_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=FootScanPatternCfg(),
+        pattern_cfg=patterns.FootScanPatternCfg(),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         max_distance=100.0,
@@ -126,7 +157,7 @@ class StatObsScene(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/RH_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=FootScanPatternCfg(),
+        pattern_cfg=patterns.FootScanPatternCfg(),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         max_distance=100.0,
@@ -142,6 +173,23 @@ class StatObsScene(InteractiveSceneCfg):
     )
 
 
+@configclass
+class DynObsSceneCfg(FlatWallObsScene):
+    obstacle = OBS_CFG.replace(
+        prim_path="{ENV_REGEX_NS}/Obstacle",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 5.0, 5.0), lin_vel=(0.0, 0.0, 0.0)),
+    )
+
+    dummy_raycaster_obstacle = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Obstacle",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        attach_yaw_only=True,
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.2, size=[1.0, 1.0]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+    )
+
+
 ##
 # MDP settings
 ##
@@ -149,15 +197,21 @@ class StatObsScene(InteractiveSceneCfg):
 
 @configclass
 class CommandsCfg:
-    """Command specifications for the MDP."""
+    """Command specifications for the MDP.
+    In this task, the commands probably will be the goal positions for the robot to reach."""
 
-    # robot_direction = mdp.DirectionCommandCfg(
-    #     resampling_time_range=(100000.0, 100000.0),
-    #     asset_name="robot",
-    #     direction=(1.0, 0.0),
-    # )
+    # target pos for the obstacle
+    obstacle_target_pos = mdp.Uniform2dCoordCfg(
+        asset_name="obstacle",
+        resampling_time_range=(5.0, 20.0),
+        ranges=mdp.Uniform2dCoordCfg.Ranges(
+            pos_x=(-10.0, 10.0),
+            pos_y=(-10.0, 10.0),
+        ),
+        # use_env_spacing=True,
+        sample_local=True,
+    )
 
-    # target pos for the robot. the agent has to learn to move to this position
     robot_goal = mdp.RobotGoalCommandCfg(
         # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
         asset_name="robot",
@@ -166,31 +220,50 @@ class CommandsCfg:
         radius=5.0,
         terrain_analysis=mdp.TerrainAnalysisCfg(
             raycaster_sensor="lidar",
-        ),
+        ),  # not required for generated terrains, but for moving environments
         # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
         use_grid_spacing=True,
     )
+
+    # # target pos for the robot. the agent has to learn to move to this position
+    # robot_goal = mdp.RobotGoalCommandCfg(
+    #     # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
+    #     asset_name="robot",
+    #     resampling_time_range=(100000.0, 100000.0),  # resample only on reset
+    #     debug_vis=True,
+    #     radius=5.0,
+    #     terrain_analysis=mdp.TerrainAnalysisCfg(
+    #         raycaster_sensor="lidar",
+    #     ),
+    # )
 
 
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
 
+    obstacle_bot_positions = mdp.ObstacleActionTermSimpleCfg(
+        asset_name="obstacle",
+        max_velocity=5,
+        max_acceleration=5,
+        max_rotvel=6,
+        obstacle_center_height=1.05,
+        raycaster_sensor="dummy_raycaster_obstacle",
+    )
+
     velocity_command = mdp.PerceptiveNavigationSE2ActionCfg(
         asset_name="robot",
         low_level_action=mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=[".*"], scale=1.0, use_default_offset=False
         ),
-
-        # code still from orbit
-        # low_level_decimation=4,
-        # low_level_policy_file=os.path.join(
-        #     ORBIT_ASSETS_DATA_DIR, "Robots/RSL-ETHZ/ANYmal-D", "perceptive_locomotion_jit.pt"
-        # ),
-        # reorder_joint_list=ISAAC_GYM_JOINT_NAMES,
-        # observation_group="low_level_policy",
-        # scale=[1, 0.5, 2.0],
-        # offset=[-0.25, -0.25, -1.0],
+        low_level_decimation=4,
+        low_level_policy_file=os.path.join(
+            ISAACLAB_ASSETS_DATA_DIR, "Robots/RSL-ETHZ/ANYmal-D", "perceptive_locomotion_jit.pt"
+        ),
+        reorder_joint_list=ISAAC_GYM_JOINT_NAMES,
+        observation_group="low_level_policy",
+        scale=[1.5, 0.5, 2.0],
+        offset=[-0.25, -0.25, -1.0],
     )
 
 
@@ -235,23 +308,34 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = True
 
+    # obstacle positions
+    @configclass
+    class ObstacleControlCfg(ObsGroup):
+        """Observations for obstacle group."""
+
+        position_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "obstacle_target_pos"})
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
     @configclass
     class DataLoggingCfg(ObsGroup):
         """Observations for data logging."""
 
         # Positions
         robot_position = ObsTerm(func=mdp.metrics_robot_position)
-        # start_position = ObsTerm(func=mdp.metrics_start_position)
-        # goal_position = ObsTerm(func=mdp.metrics_goal_position)
+        start_position = ObsTerm(func=mdp.metrics_start_position)
+        goal_position = ObsTerm(func=mdp.metrics_goal_position)
         # Path Length
-        # path_length = ObsTerm(func=mdp.metrics_path_length)
+        path_length = ObsTerm(func=mdp.metrics_path_length)
         # Episode Signals
         timeout_signal = ObsTerm(func=mdp.metrics_timeout_signal)
         termination_signal = ObsTerm(func=mdp.metrics_termination_signal)
         dones_signal = ObsTerm(func=mdp.metrics_dones_signal)
-        # goal_reached = ObsTerm(
-        #     func=mdp.metrics_goal_reached, params={"distance_threshold": 0.5, "speed_threshold": 1.2}
-        # )  # do not care about speed
+        goal_reached = ObsTerm(
+            func=mdp.metrics_goal_reached, params={"distance_threshold": 0.5, "speed_threshold": 1.2}
+        )  # do not care about speed
         undesired_contacts = ObsTerm(
             func=mdp.metrics_undesired_contacts,
             params={"threshold": 0.01, "body_names": [".*THIGH", ".*HIP", ".*SHANK", "base"]},
@@ -268,6 +352,9 @@ class ObservationsCfg:
     # # observation groups
     # # observations for the low-level pretrained policy (not obs of the actual agent)
     low_level_policy: LocomotionPolicyCfg = LocomotionPolicyCfg()
+
+    # # obstacles
+    obstacle_control: ObstacleControlCfg = ObstacleControlCfg()
 
     # logging
     metrics: DataLoggingCfg = DataLoggingCfg()
@@ -294,29 +381,30 @@ class EventCfg:
     )
 
     # reset
-    # TODO curriculum spawning
     # reset_base = EventTerm(
-    #     func=mdp.reset_robot_position,
+    #     func=mdp.reset_root_state_uniform,  # reset_root_state_uniform,
     #     mode="reset",
     #     params={
-    #         "additive_heading_range": {"yaw": (-1.0, +1.0)},
-    #         # "additive_heading_range": {"yaw": (-3.14, 3.14)},
-    #         "command_name": "robot_direction",
+    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "z": (0.2, 0.2), "yaw": (-0.5, 0.5)},
+    #         "velocity_range": {
+    #             "x": (-0.5, 0.5),
+    #             "y": (-0.5, 0.5),
+    #             "z": (-0.5, 0.5),
+    #             "roll": (-0.05, 0.05),
+    #             "pitch": (-0.05, 0.05),
+    #             "yaw": (-0.5, 0.5),
+    #         },
     #     },
     # )
+
+    # TODO curriculum spawning
     reset_base = EventTerm(
-        func=mdp.reset_root_state_uniform,
+        func=mdp.reset_robot_position,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "z": (0.2, 0.2), "yaw": (-0.5, 0.5)},
-            "velocity_range": {
-                "x": (-0.5, 0.5),
-                "y": (-0.5, 0.5),
-                "z": (-0.5, 0.5),
-                "roll": (-0.05, 0.05),
-                "pitch": (-0.05, 0.05),
-                "yaw": (-0.5, 0.5),
-            },
+            # "additive_heading_range": {"yaw": (-1.0, +1.0)},
+            "additive_heading_range": {"yaw": (-3.14, 3.14)},
+            "command_name": "robot_goal",
         },
     )
 
@@ -337,7 +425,7 @@ class RewardsCfg:
     # -- tasks
     goal_reached = RewTerm(
         func=mdp.goal_reached,  # reward is high to compensate for reset penalty
-        weight=500.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
+        weight=205.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
         params={"distance_threshold": 0.5, "speed_threshold": 0.1},
     )
     goal_progress = RewTerm(
@@ -366,13 +454,11 @@ class RewardsCfg:
     action_rate_l2 = RewTerm(
         func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
-
-    # modification from previous project not implemented in IsaacLab and currently not needed
-    # no_robot_movement = RewTerm(
-    #     func=mdp.no_robot_movement,
-    #     weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-    #     params={"goal_distance_thresh": 0.5},
-    # )
+    no_robot_movement = RewTerm(
+        func=mdp.no_robot_movement,
+        weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+        params={"goal_distance_thresh": 0.5},
+    )
 
     # undesired_contacts = RewTerm(
     #     func=mdp.undesired_contacts,
@@ -388,7 +474,7 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    # time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    # # time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # base_contact = DoneTerm(
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
@@ -398,13 +484,21 @@ class TerminationsCfg:
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     # )
 
-    illegal_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"),
-            "threshold": 1.0,
-        },
-    )
+    # goal_reached = DoneTerm(
+    #     func=mdp.at_goal,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "distance_threshold": 0.5,
+    #         "speed_threshold": 1.0,
+    #         "goal_cmd_name": "robot_goal",
+    #     },
+    #     time_out=True,
+    # )
+
+    # update_commands = DoneTerm(
+    #     func=mdp.update_command_on_termination,
+    #     params={"goal_cmd_name": "robot_goal"},
+    # )
 
 
 @configclass
@@ -412,12 +506,10 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
 
     goal_distance = CurrTerm(
-        func=mdp.modify_goal_distance_in_steps,
+        func=mdp.modify_goal_distance,
         params={
-            "update_rate_steps": 100 * 48,
-            "min_path_length_range": (0.0, 2.0),
-            "max_path_length_range": (5.0, 15.0),
-            "step_range": (50 * 48, 1500 * 48),
+            "step_size": 0.5,
+            "required_successes": 5,
         },
     )
 
@@ -432,7 +524,7 @@ class CrowdNavigationEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
-    scene: StatObsScene = StatObsScene(num_envs=2, env_spacing=5)
+    scene: DynObsSceneCfg = DynObsSceneCfg(num_envs=2, env_spacing=2)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -450,12 +542,13 @@ class CrowdNavigationEnvCfg(ManagerBasedRLEnvCfg):
         self.episode_length_s = 30
 
         # DO NOT CHANGE
-        self.decimation = int(200 / self.fz_planner)  # ratio of actions to physics updates
+        self.decimation = int(200 / self.fz_planner)  # low/high level planning runs at 25Hz
         self.low_level_decimation = 4  # low level controller runs at 50Hz
 
         # simulation settings
-        self.sim.dt = 0.005  # 200Hz
+        self.sim.dt = 0.005
         self.sim.disable_contact_processing = True
+        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 2**26
         # self.sim.physics_material = self.scene.terrain.physics_material
 
         # update sensor update periods

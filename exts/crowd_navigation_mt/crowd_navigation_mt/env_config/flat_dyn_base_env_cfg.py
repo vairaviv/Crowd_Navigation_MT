@@ -236,13 +236,13 @@ class CommandsCfg:
     dyn_obst_target_pos = mdp.UniformPose2dCommandCfg(
         debug_vis=True,
         asset_name="dyn_obst",
-        resampling_time_range=(60, 120),
+        resampling_time_range=(10000000, 10000000),
         simple_heading=True,
         ranges=mdp.UniformPose2dCommandCfg.Ranges(
-            pos_x=(-10.0, 10.0),
-            pos_y=(-10.0, 10.0),
+            pos_x=(0.0, 0.0),
+            pos_y=(0.0, 0.0),
             # heading=(0,2*torch.pi) #only accessed if simple heading is false
-        )
+        ),
     )
 
     # TODO this is from the template, maybe too complicated for the start and change it to mdp.FixGoalCommand 
@@ -623,7 +623,7 @@ class SimpleDynEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physics_material = self.scene.terrain.physics_material
 
         # General settings
-        self.episode_length_s = 20
+        self.episode_length_s = 10000
 
         # This sets how many times the high-level actions (navigation policy) 
         # are applied to the sim before being recalculated. 

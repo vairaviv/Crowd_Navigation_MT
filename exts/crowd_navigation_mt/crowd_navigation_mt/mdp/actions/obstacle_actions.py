@@ -44,9 +44,9 @@ class SimpleDynObstacleActionTerm(ActionTerm):
 
         self.arena_size = math.sqrt(env.num_envs) * self.env_spacing + self.env_spacing
 
-        self.p_gain = 5
-        self.d_gain = 0 
-        self.p_gain_rot = 5
+        self.p_gain = 10
+        self.d_gain = 2
+        self.p_gain_rot = 10
 
         # # raycaster to keep the obstacles on the ground
         # # currently no raycaster implemented for the simple obstacle

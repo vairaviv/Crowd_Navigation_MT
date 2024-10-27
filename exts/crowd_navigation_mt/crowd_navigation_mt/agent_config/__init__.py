@@ -11,6 +11,7 @@ from crowd_navigation_mt.env_config import (
 ) #crowd_navigation_stat_obs_base_env_cfg,
 
 from . import agents
+from . import anymal_d
 
 ##
 # Register Gym environments.
