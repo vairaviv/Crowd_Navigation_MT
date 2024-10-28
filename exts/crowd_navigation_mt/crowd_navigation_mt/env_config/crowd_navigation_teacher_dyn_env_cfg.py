@@ -273,8 +273,8 @@ class CrowdNavigationTeacherDynEnvCfg(CrowdNavigationEnvCfg):
             visualizer_cfg=MY_RAY_CASTER_MARKER_CFG.replace(prim_path="/Visuals/RayCaster"),
             mesh_prim_paths=["/World/ground", self.scene.obstacle.prim_path],
             track_mesh_transforms=True,
-            max_meshes=32,
-            mesh_ids_to_keep=[0],  # terrain id
+            # max_meshes=32,
+            # mesh_ids_to_keep=[0],  # terrain id
         )
 
         # change terrain:

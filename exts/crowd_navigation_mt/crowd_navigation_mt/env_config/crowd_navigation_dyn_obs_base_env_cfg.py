@@ -28,6 +28,7 @@ from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 import crowd_navigation_mt.mdp as mdp 
 # import crowd_navigation_mt.sensors import patterns
 from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
+from crowd_navigation_mt import CROWDNAV_DATA_DIR
 
 ##
 # Pre-defined configs
@@ -63,7 +64,7 @@ ISAAC_GYM_JOINT_NAMES = [
     "RH_KFE",
 ]
 
-OBSERVATION_HISTORY_CLASS = mdp.observations.ObservationHistory(history_length_actions=1, history_length_positions=10)
+OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=10)
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 
 from crowd_navigation_mt.terrains.config.rough import (
@@ -258,7 +259,7 @@ class ActionsCfg:
         ),
         low_level_decimation=4,
         low_level_policy_file=os.path.join(
-            ISAACLAB_ASSETS_DATA_DIR, "Robots/RSL-ETHZ/ANYmal-D", "perceptive_locomotion_jit.pt"
+            CROWDNAV_DATA_DIR, "Policies", "perceptive_locomotion_jit.pt"
         ),
         reorder_joint_list=ISAAC_GYM_JOINT_NAMES,
         observation_group="low_level_policy",
