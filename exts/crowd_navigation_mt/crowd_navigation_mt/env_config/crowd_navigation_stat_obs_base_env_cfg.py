@@ -58,7 +58,7 @@ ISAAC_GYM_JOINT_NAMES = [
 ]
 
 
-OBSERVATION_HISTORY_CLASS = mdp.observations.ObservationHistory(history_length_actions=1, history_length_positions=20)
+OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=20)
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 
 from crowd_navigation_mt.terrains.config.rough import ROUGH_TERRAINS_CFG, OBS_TERRAINS_CFG  # isort: skip

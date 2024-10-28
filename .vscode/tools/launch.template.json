@@ -71,6 +71,23 @@
             "env": {
                 "PYTHONPATH": "${env:PYTHONPATH}:${workspaceFolder}"
             }
-        }
+        },
+        {
+            "name": "PLR Trials TRAIN Environment",
+            "type": "python",
+            "request": "launch",
+            "args" : [
+                "--task", 
+                "Isaac-CrowdNavigation-Teacher-StatObs-Anymal-D-Trials", 
+                "--num_envs", 
+                "4",
+                "--logger",
+                "tensorboard",
+                "--device",
+                "cuda"
+        ],
+            "program": "${workspaceFolder}/crowd_navigation_mt/scripts/rsl_rl/train.py", 
+            "console": "integratedTerminal"
+        },
     ]
 }

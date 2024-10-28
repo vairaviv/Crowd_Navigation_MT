@@ -344,7 +344,7 @@ class ObservationsCfg:
         episode_length = ObsTerm(func=mdp.metrics_episode_length)
 
         # For Computing Rewards
-        robot_position_history = ObsTerm(func=OBSERVATION_HISTORY_CLASS.get_history_of_positions)
+        robot_position_history = ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env))
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -455,11 +455,13 @@ class RewardsCfg:
     action_rate_l2 = RewTerm(
         func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
+    """
     no_robot_movement = RewTerm(
         func=mdp.no_robot_movement,
         weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
         params={"goal_distance_thresh": 0.5},
     )
+    """
 
     # undesired_contacts = RewTerm(
     #     func=mdp.undesired_contacts,
