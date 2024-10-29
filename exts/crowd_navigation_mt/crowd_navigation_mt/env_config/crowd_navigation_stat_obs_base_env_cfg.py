@@ -259,7 +259,7 @@ class ObservationsCfg:
         episode_length = ObsTerm(func=mdp.metrics_episode_length)
 
         # For Computing Rewards
-        robot_position_history = ObsTerm(func=OBSERVATION_HISTORY_CLASS.get_history_of_positions)
+        robot_position_history = ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env), clip=None)
 
         def __post_init__(self):
             self.enable_corruption = False

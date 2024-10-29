@@ -73,7 +73,7 @@ class TeacherPolicyObsCfg(ObsGroup):
     )
 
     lidar_distances_history = ObsTerm(
-        func=LIDAR_HISTORY.get_history,
+        func=lambda env: LIDAR_HISTORY.get_history(env),
         clip=(-100.0, 100.0),
     )  # must come in the end because of the extra lidar obs (rel poses)
 

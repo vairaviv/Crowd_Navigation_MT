@@ -20,62 +20,62 @@ from . import agents, navigation_env_cfg
 #     },
 # )
 
-# staitc obstacles
-gym.register(
-    id="Isaac-CrowdNavigation-Teacher-StatObs-Anymal-D-v0",
-    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheConvCfg,
-    },
-)
+# # staitc obstacles
+# gym.register(
+#     id="Isaac-CrowdNavigation-Teacher-StatObs-Anymal-D-v0",
+#     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+#     disable_env_checker=True,
+#     kwargs={
+#         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
+#         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheConvCfg,
+#     },
+# )
 
 
-# staitc obstacles with heightscan
-gym.register(
-    id="Isaac-CrowdNavigation-Teacher-StatObs-Height-Anymal-D-v0",
-    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheConvHeightCfg,
-    },
-)
+# # staitc obstacles with heightscan
+# gym.register(
+#     id="Isaac-CrowdNavigation-Teacher-StatObs-Height-Anymal-D-v0",
+#     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+#     disable_env_checker=True,
+#     kwargs={
+#         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
+#         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheConvHeightCfg,
+#     },
+# )
 
-# static obstacles without gru
-gym.register(
-    id="Isaac-CrowdNavigation-Teacher-StatObs-NoGru-Anymal-D-v0",
-    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheNoGruConvCfg,
-    },
-)
-
-
-gym.register(
-    id="Isaac-CrowdNavigation-Teacher-DynObs-Anymal-D-v0",
-    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynEnvCfg,  # AnymalDCrowdNavigationTeacherDynEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheDynConvCfg,
-    },
-)
+# # static obstacles without gru
+# gym.register(
+#     id="Isaac-CrowdNavigation-Teacher-StatObs-NoGru-Anymal-D-v0",
+#     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+#     disable_env_checker=True,
+#     kwargs={
+#         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
+#         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheNoGruConvCfg,
+#     },
+# )
 
 
-""" EVALUATION ENVIRONMENTS """
-gym.register(
-    id="Isaac-CrowdNavigation-Teacher-StatObs-EVAL-Anymal-D-v0",
-    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationStatObsEvalEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheConvCfg,
-    },
-)
+# gym.register(
+#     id="Isaac-CrowdNavigation-Teacher-DynObs-Anymal-D-v0",
+#     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+#     disable_env_checker=True,
+#     kwargs={
+#         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynEnvCfg,  # AnymalDCrowdNavigationTeacherDynEnvCfg,
+#         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheDynConvCfg,
+#     },
+# )
+
+
+# """ EVALUATION ENVIRONMENTS """
+# gym.register(
+#     id="Isaac-CrowdNavigation-Teacher-StatObs-EVAL-Anymal-D-v0",
+#     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+#     disable_env_checker=True,
+#     kwargs={
+#         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationStatObsEvalEnvCfg,
+#         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheConvCfg,
+#     },
+# )
 
 
 #################################################

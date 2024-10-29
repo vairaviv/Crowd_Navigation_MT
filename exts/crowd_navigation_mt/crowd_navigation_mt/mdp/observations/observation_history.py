@@ -4,12 +4,16 @@ import torch
 from typing import TYPE_CHECKING
 
 from omni.isaac.lab.envs import ManagerBasedEnv, ManagerBasedRLEnv
-from omni.isaac.lab.managers import SceneEntityCfg
+from omni.isaac.lab.managers import SceneEntityCfg, ManagerTermBase
+from omni.isaac.lab.assets import AssetBase
 from omni.isaac.lab.assets import RigidObject
+from omni.isaac.lab.managers import ObservationTermCfg, ObservationManager
 
 from omni.isaac.lab.sensors import CameraCfg, ContactSensorCfg, RayCasterCfg, patterns, RayCaster
 
 import crowd_navigation_mt.mdp as mdp  # noqa: F401, F403
+from .observation_history_cfg import ObservationHistoryTermCfg
+
 
 from omni.isaac.lab.utils import math as math_utils
 from ..actions import NavigationSE2Action
@@ -19,16 +23,34 @@ if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
 
 
-class ObservationHistory:
-    def __init__(self, history_length_actions, history_length_positions: int = 1) -> None:
-        """Initialize the buffers for the history of observations.
+class ObservationHistory(ManagerTermBase):
+    # def __init__(self, history_length_actions, history_length_positions: int = 1) -> None:
+    #     """Initialize the buffers for the history of observations.
+
+    #     Args:
+    #         history_length: The length of the history.
+    #     """
+
+    #     self.buffers = {
+    #         "actions": torch.empty(size=(0, history_length_actions, 3)),
+    #         "positions": torch.empty(size=(0, history_length_positions, 2)),
+    #     }
+
+    def __init__(self, cfg: ObservationHistoryTermCfg, env: ManagerBasedEnv):
+        """Initialize the observation history term.
 
         Args:
-            history_length: The length of the history.
+            cfg: The configuration object.
+            env: The environment instance.
         """
+        # call the base class constructor
+        super().__init__(cfg, env)
+
+        self.cfg = cfg
+
         self.buffers = {
-            "actions": torch.empty(size=(0, history_length_actions, 3)),
-            "positions": torch.empty(size=(0, history_length_positions, 2)),
+            "actions": torch.empty(size=(0, self.cfg.history_length_actions, 3)),
+            "positions": torch.empty(size=(0, self.cfg.history_length_positions, 2)),
         }
 
     def reset(self, env: ManagerBasedRLEnv, buffer_names: list = None):
@@ -49,7 +71,7 @@ class ObservationHistory:
             # Reset buffer for terminated episodes
             self.buffers[key][terminated_mask, :, :] = 0.0
 
-    def get_history_of_actions(self, env: ManagerBasedEnv):
+    def get_history_of_actions(self, env: ManagerBasedRLEnv):
         """Get the history of actions.
 
         Args:
@@ -62,7 +84,7 @@ class ObservationHistory:
         self.buffers["actions"][:, -1, :] = env.action_manager.action
         return self.buffers["actions"].reshape(env.num_envs, -1)
 
-    def get_history_of_positions(self, env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+    def get_history_of_positions(self, env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
         """Get the history of positions.
 
         Args:

@@ -29,6 +29,7 @@ import crowd_navigation_mt.mdp as mdp
 # import crowd_navigation_mt.sensors import patterns
 from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
 from crowd_navigation_mt import CROWDNAV_DATA_DIR
+from crowd_navigation_mt.mdp.observations.observation_history_cfg import ObservationHistoryTermCfg
 
 ##
 # Pre-defined configs
@@ -64,7 +65,7 @@ ISAAC_GYM_JOINT_NAMES = [
     "RH_KFE",
 ]
 
-OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=10)
+
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 
 from crowd_navigation_mt.terrains.config.rough import (
@@ -324,6 +325,8 @@ class ObservationsCfg:
     class DataLoggingCfg(ObsGroup):
         """Observations for data logging."""
 
+        # OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=10)
+
         # Positions
         robot_position = ObsTerm(func=mdp.metrics_robot_position)
         start_position = ObsTerm(func=mdp.metrics_start_position)
@@ -344,8 +347,11 @@ class ObservationsCfg:
         episode_length = ObsTerm(func=mdp.metrics_episode_length)
 
         # For Computing Rewards
-        robot_position_history = ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env))
-
+        robot_position_history = ObservationHistoryTermCfg(
+            func=mdp.ObservationHistory.get_history_of_positions, 
+            history_length_actions=1,
+            history_length_positions=10)
+        
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
