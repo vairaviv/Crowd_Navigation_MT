@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING
+from collections.abc import Sequence
 
 from omni.isaac.lab.envs import ManagerBasedEnv, ManagerBasedRLEnv
 from omni.isaac.lab.managers import SceneEntityCfg, ManagerTermBase
@@ -53,23 +54,71 @@ class ObservationHistory(ManagerTermBase):
             "positions": torch.empty(size=(0, self.cfg.history_length_positions, 2)),
         }
 
-    def reset(self, env: ManagerBasedRLEnv, buffer_names: list = None):
+    def __call__(self, *args, **kwargs) -> torch.Any:
+
+
+        method_name = kwargs["kwargs"]["method"]
+
+        method = getattr(self, method_name, None)
+
+        if method is None or not callable(method):
+            raise ValueError(f"Method '{method_name}' not found in the class.")
+            
+        return method(*args)
+
+    def reset(self, env_ids: Sequence[int] | None = None, buffer_names: list = ["actions", "positions"], *args):
         """Reset the buffers for terminated episodes.
 
         Args:
             env: The environment object.
         """
-        # Initialize & find terminated episodes
-        try:
-            terminated_mask = env.termination_manager.dones
-        except AttributeError:
-            terminated_mask = torch.zeros((env.num_envs), dtype=int).to(env.device)
+        if env_ids is None:
+            return {}
+        
+        terminated_mask = torch.zeros((self.num_envs), dtype=torch.bool)
+        terminated_mask[env_ids] = True
+
         for key in buffer_names:
-            # Initialize buffer if empty
             if self.buffers[key].shape[0] == 0:
-                self.buffers[key] = torch.zeros((env.num_envs, *list(self.buffers[key].shape[1:]))).to(env.device)
-            # Reset buffer for terminated episodes
-            self.buffers[key][terminated_mask, :, :] = 0.0
+                self.buffers[key] = torch.zeros((self.num_envs, *list(self.buffers[key].shape[1:]))).to(device=self.device)
+
+            self.buffers[key][terminated_mask,:,:] = 0.0
+
+        # try:
+        #     terminated_mask = env_ids.termination_manager.dones
+        # except AttributeError:
+        #     terminated_mask = torch.ones((env_ids.cfg.scene.num_envs), dtype=torch.bool).to(env_ids.scene.device)
+        # if env_ids is not None:
+        #     for key in buffer_names:
+        #         # if buffers are empty needs to be initialized
+        #         if self.buffers[key].shape[0] == 0:
+        #             self.buffers[key] = torch.zeros((env_ids.cfg.scene.num_envs, *list(self.buffers[key].shape[1:]))).to(env_ids.scene.device)
+        #         # Reset buffer for teminated episodes
+        #         self.buffers[key][terminated_mask, :, :] = 0.0
+
+
+    ##
+    # PLR setup
+    ##
+
+    # def reset(self, env: ManagerBasedRLEnv, buffer_names: list = None):
+    #     """Reset the buffers for terminated episodes.
+
+    #     Args:
+    #         env: The environment object.
+    #     """
+    #     # Initialize & find terminated episodes
+    #     try:
+    #         terminated_mask = env.termination_manager.dones
+    #     except AttributeError:
+    #         terminated_mask = torch.zeros((env.num_envs), dtype=int).to(env.device)
+    #     for key in buffer_names:
+    #         # Initialize buffer if empty
+    #         if self.buffers[key].shape[0] == 0:
+    #             self.buffers[key] = torch.zeros((env.num_envs, *list(self.buffers[key].shape[1:]))).to(env.device)
+    #         # Reset buffer for terminated episodes
+    #         self.buffers[key][terminated_mask, :, :] = 0.0
+
 
     def get_history_of_actions(self, env: ManagerBasedRLEnv):
         """Get the history of actions.
@@ -78,7 +127,8 @@ class ObservationHistory(ManagerTermBase):
             env: The environment object.
         """
         # Reset buffer for terminated episodes
-        self.reset(env, ["actions"])
+        env_ids = env.termination_manager.dones
+        self.reset(env_ids, ["actions"])
         # Return updates buffer
         self.buffers["actions"] = self.buffers["actions"].roll(shifts=-1, dims=1)
         self.buffers["actions"][:, -1, :] = env.action_manager.action
@@ -92,7 +142,13 @@ class ObservationHistory(ManagerTermBase):
             asset_cfg: The name of the asset.
         """
         # Reset buffer for terminated episodes
-        self.reset(env, ["positions"])
+        try:
+            env_ids = env.termination_manager.dones
+        except AttributeError:
+            env_ids = torch.arange(self.num_envs)
+
+
+        self.reset(env_ids, ["positions"])
         # Return updates buffer
         self.buffers["positions"] = self.buffers["positions"].roll(shifts=-1, dims=1)
         self.buffers["positions"][:, -1, :] = base_position(env, asset_cfg)[:, :2]

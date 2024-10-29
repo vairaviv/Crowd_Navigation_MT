@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.modifiers import ModifierCfg
 from omni.isaac.lab.utils.noise import NoiseCfg
-from omni.isaac.lab.managers.manager_term_cfg import ManagerTermBaseCfg
+from omni.isaac.lab.managers.manager_term_cfg import ManagerTermBaseCfg, ObservationTermCfg
 
 if TYPE_CHECKING:
     from omni.isaac.lab.managers.action_manager import ActionTerm
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from omni.isaac.lab.managers.manager_term_cfg import ManagerTermBaseCfg
 
 @configclass
-class ObservationHistoryTermCfg(ManagerTermBaseCfg):
+class ObservationHistoryTermCfg(ObservationTermCfg):
     """Configuration for an observation term."""
 
     func: Callable[..., torch.Tensor] = MISSING

@@ -81,7 +81,8 @@ class TerrainAnalysis:
         z_positions = raycast_dynamic_meshes(
             ray_starts=ray_starts.to(torch.float32),
             ray_directions=self.height_scan_directions.unsqueeze(0).repeat(len(spawn_2d), 1, 1).to(torch.float32),
-            meshes=np.tile(np.array(self._raycaster._meshes[0], dtype=wp.Mesh)[0], (len(spawn_2d), 1)),
+            mesh_ids_wp=self._raycaster._mesh_ids_wp,
+            #meshes=np.tile(np.array(self._raycaster._meshes[0], dtype=wp.Mesh)[0], (len(spawn_2d), 1)),
             max_dist=1000,
             return_distance=False,
         )[0][..., 2]
@@ -129,8 +130,11 @@ class TerrainAnalysis:
     def _point_valid(self, sample_point: torch.Tensor) -> bool:
         # raycast with the 2d lidar scan. we scan all n_samples at once (like multiple envs)
         # shapes of inputs are (n_samples, n_rays, 3)
-
-        closest_meshes_list, keep_indices = self._extract_n_closest_meshes(sample_point.mean(dim=0), 16)
+        N = 16
+        if self._env.num_envs <= N:
+            N = self._env.num_envs
+            
+        closest_meshes_list, keep_indices = self._extract_n_closest_meshes(sample_point.mean(dim=0), N=N)
         mesh_positions = (
             self._raycaster._data.mesh_positions_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1)
         )
@@ -143,7 +147,8 @@ class TerrainAnalysis:
             ray_starts=sample_point.unsqueeze(1).repeat(1, len(self.scan_2d_directions), 1).to(torch.float32),
             ray_directions=self.scan_2d_directions.unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32),
             # meshes=np.tile(np.array(self._raycaster._meshes[0], dtype=wp.Mesh)[0], (len(sample_point), 1)),
-            meshes=np.tile(np.array(closest_meshes_list, dtype=wp.Mesh), (len(sample_point), 1)),
+            mesh_ids_wp=self._raycaster._mesh_ids_wp,
+            # meshes=np.tile(np.array(closest_meshes_list, dtype=wp.Mesh), (len(sample_point), 1)),
             mesh_positions_w=mesh_positions,
             mesh_orientations_w=mesh_orientations,
             max_dist=5,

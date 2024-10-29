@@ -59,23 +59,23 @@ class TeacherPolicyObsCfg(ObsGroup):
     cpg_state = ObsTerm(func=mdp.cgp_state)
 
     # privileged sensor observations
-    # lidar_distances = ObsTerm(
-    #     func=mdp.lidar_obs_dist,
-    #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
-    #     # noise=Unoise(n_min=-0.1, n_max=0.1),
-    #     clip=(-100.0, 100.0),
-    # )
-
-    lidar_mesh_velocities = ObsTerm(
-        func=mdp.lidar_obs_vel_b_static_2d,
+    lidar_distances = ObsTerm(
+        func=mdp.lidar_obs_dist,
         params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
+        # noise=Unoise(n_min=-0.1, n_max=0.1),
         clip=(-100.0, 100.0),
     )
 
-    lidar_distances_history = ObsTerm(
-        func=lambda env: LIDAR_HISTORY.get_history(env),
-        clip=(-100.0, 100.0),
-    )  # must come in the end because of the extra lidar obs (rel poses)
+    # lidar_mesh_velocities = ObsTerm(
+    #     func=mdp.lidar_obs_vel_b_static_2d,
+    #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
+    #     clip=(-100.0, 100.0),
+    # )
+
+    # lidar_distances_history = ObsTerm(
+    #     func=lambda env: LIDAR_HISTORY.get_history(env),
+    #     clip=(-100.0, 100.0),
+    # )  # must come in the end because of the extra lidar obs (rel poses)
 
     # lidar_mesh_velocities = ObsTerm(
     #     func=mdp.lidar_obs_vel_rel_2d,
@@ -271,7 +271,7 @@ class CrowdNavigationTeacherDynEnvCfg(CrowdNavigationEnvCfg):
             history_length=1,
             # mesh_prim_paths=["/World/ground", self.scene.obstacle.prim_path],
             visualizer_cfg=MY_RAY_CASTER_MARKER_CFG.replace(prim_path="/Visuals/RayCaster"),
-            mesh_prim_paths=["/World/ground", self.scene.obstacle.prim_path],
+            mesh_prim_paths=["/World/ground", "/World/envs/env_.*/Obstacle"], # "{ENV_REGEX_NS}/Obstacle",self.scene.obstacle.prim_path
             track_mesh_transforms=True,
             # max_meshes=32,
             # mesh_ids_to_keep=[0],  # terrain id

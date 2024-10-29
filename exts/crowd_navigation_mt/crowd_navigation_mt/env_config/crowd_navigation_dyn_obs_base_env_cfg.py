@@ -29,7 +29,7 @@ import crowd_navigation_mt.mdp as mdp
 # import crowd_navigation_mt.sensors import patterns
 from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
 from crowd_navigation_mt import CROWDNAV_DATA_DIR
-from crowd_navigation_mt.mdp.observations.observation_history_cfg import ObservationHistoryTermCfg
+from crowd_navigation_mt.mdp import ObservationHistoryTermCfg
 
 ##
 # Pre-defined configs
@@ -167,7 +167,28 @@ class FlatWallObsScene(InteractiveSceneCfg):
 
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
-    lidar: RayCasterCfg = MISSING
+    lidar : RayCasterCfg = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/RH_FOOT",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        attach_yaw_only=True,
+        pattern_cfg=patterns.FootScanPatternCfg(),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+        max_distance=100.0,
+    )
+
+
+    # lidar: RayCasterCfg = RayCasterCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base",
+    #     mesh_prim_paths=["/World/ground"],
+    #     pattern_cfg=patterns.LidarPatternCfg(
+    #         channels=1,
+    #         vertical_fov_range=(0.0, 0.0),
+    #         horizontal_fov_range=(0, 360),
+    #         horizontal_res=1,
+    #     ),
+
+    # )
 
     light = AssetBaseCfg(
         prim_path="/World/skyLight",
@@ -348,7 +369,8 @@ class ObservationsCfg:
 
         # For Computing Rewards
         robot_position_history = ObservationHistoryTermCfg(
-            func=mdp.ObservationHistory.get_history_of_positions, 
+            func=mdp.ObservationHistory,
+            params={"kwargs" : {"method": "get_history_of_positions"}},
             history_length_actions=1,
             history_length_positions=10)
         
