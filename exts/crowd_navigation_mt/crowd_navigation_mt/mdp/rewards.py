@@ -458,7 +458,7 @@ def backwards_movement(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scene
     """
     asset: Articulation = env.scene[asset_cfg.name]
     # compute the reward
-    forward_velocity = asset.data.root_vel_b[:, 0]
+    forward_velocity = asset.data.root_lin_vel_b[:, 0]
     backward_movement_idx = torch.where(
         forward_velocity < 0.0, torch.ones_like(forward_velocity), torch.zeros_like(forward_velocity)
     )
@@ -480,7 +480,7 @@ def lateral_movement(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEn
     """
     asset: Articulation = env.scene[asset_cfg.name]
     # compute the reward
-    lateral_velocity = asset.data.root_vel_b[:, 1]
+    lateral_velocity = asset.data.root_lin_vel_b[:, 1]
     reward = torch.square(lateral_velocity)
     reward = torch.clip(reward, min=0, max=1.0)
     return reward

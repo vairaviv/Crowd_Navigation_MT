@@ -297,7 +297,9 @@ class RobotGoalCommand(CommandTerm):
     def _resample_spawn_positions(self, env_ids: Sequence[int]):
         if self.terrain_analysis is not None:
             if len(env_ids) > 0:
-                self.pos_spawn_w[env_ids] = self.terrain_analysis.sample_spawn(self.env.scene.env_origins[env_ids, :2])
+                # self.pos_spawn_w[env_ids] = self.terrain_analysis.sample_spawn(self.env.scene.env_origins[env_ids, :2])
+                # TODO randomize spawnpositions currently taken out as raycast_dynamic_meshes doesnt work
+                self.pos_spawn_w[env_ids] = self.pos_spawn_w[env_ids]
         else:
             self.pos_spawn_w[env_ids, :2] = self.env.scene.env_origins[env_ids, :2]
 

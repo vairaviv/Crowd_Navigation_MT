@@ -83,11 +83,21 @@ from . import agents, navigation_env_cfg
 #################################################
 
 gym.register(
+    id="Isaac-CrowdNavigation-Teacher-DynObs-Anymal-D-Trials",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynEnvCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherBaseCfg,
+    },
+)
+
+gym.register(
     id="Isaac-CrowdNavigation-Teacher-StatObs-Anymal-D-Trials",
     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherBaseCfg,
     },
 )

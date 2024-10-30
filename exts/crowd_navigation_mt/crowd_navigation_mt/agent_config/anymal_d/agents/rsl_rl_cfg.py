@@ -68,6 +68,42 @@ class PPOBaseBetaCompressCfg(RslRlOnPolicyRunnerCfg):
     )
 
 
+@configclass
+class PPOBase(RslRlPpoActorCriticCfg):
+    num_steps_per_env = 24
+    max_iterations = 1500
+    save_interval = 50
+    experiment_name = "crowd_navigation"
+    empirical_normalization = False
+    seed = 1234
+    policy: RslRlPpoActorCriticCfg = RslRlPpoActorCriticCfg(
+        # input_dims=[2 + 8, 360],  # target pos, 2d lidar obs. Sum needs to equal observation dimensions
+        init_noise_std=0.2,
+        actor_hidden_dims=[256, 128, 64],
+        critic_hidden_dims=[256, 128, 64],
+        # add proproiception, velicoty and / or history of distances
+        # actor_out_hidden_dims=[256, 256, 128],
+        # critic_out_hidden_dims=[256, 256, 128],
+        activation="elu",
+        # module_types=["mlp", "mlp"],
+        # beta_initial_logit=0.5,
+        # beta_initial_scale=5.0,
+    )
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.005,
+        num_learning_epochs=5,
+        num_mini_batches=4,
+        learning_rate=1.0e-3,
+        schedule="adaptive",
+        gamma=0.99,
+        lam=0.95,
+        desired_kl=0.01,
+        max_grad_norm=1.0,
+    )
+
 NON_LIDAR_DIM = 2 + 8  # commanded pos, proprioception
 HISTORY_LENGTH_STAT = 1
 HISTORY_LENGTH_DYN = 10
@@ -286,6 +322,13 @@ class PPOBaseBetaCfg(RslRlOnPolicyRunnerCfg):
 ######################################################################
 # PPO - Specific Configuration
 ######################################################################
+class PPOTeacherBaseCfg(PPOBase):
+    run_name = "PPO_Base"
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.max_iterations = 10000
+
 @configclass
 class PPOCfg(PPOBaseBetaCfg):
     run_name = "PPO_Beta"

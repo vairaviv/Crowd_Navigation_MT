@@ -130,16 +130,17 @@ class TerrainAnalysis:
     def _point_valid(self, sample_point: torch.Tensor) -> bool:
         # raycast with the 2d lidar scan. we scan all n_samples at once (like multiple envs)
         # shapes of inputs are (n_samples, n_rays, 3)
+        # TODO check if this even makes sense
         N = 16
         if self._env.num_envs <= N:
             N = self._env.num_envs
             
         closest_meshes_list, keep_indices = self._extract_n_closest_meshes(sample_point.mean(dim=0), N=N)
         mesh_positions = (
-            self._raycaster._data.mesh_positions_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1)
+            self._raycaster._data.mesh_positions_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32)
         )
         mesh_orientations = (
-            self._raycaster._data.mesh_orientations_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1)
+            self._raycaster._data.mesh_orientations_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32)
         )
 
         # TODO add mesh_ids_wp

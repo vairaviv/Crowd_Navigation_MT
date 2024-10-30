@@ -167,15 +167,7 @@ class FlatWallObsScene(InteractiveSceneCfg):
 
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
-    lidar : RayCasterCfg = RayCasterCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/RH_FOOT",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-        attach_yaw_only=True,
-        pattern_cfg=patterns.FootScanPatternCfg(),
-        debug_vis=False,
-        mesh_prim_paths=["/World/ground"],
-        max_distance=100.0,
-    )
+    lidar : RayCasterCfg = MISSING
 
 
     # lidar: RayCasterCfg = RayCasterCfg(
@@ -234,6 +226,17 @@ class CommandsCfg:
         # use_env_spacing=True,
         sample_local=True,
     )
+
+    # robot_goal = mdp.Uniform2dCoordCfg(
+    #     asset_name="robot",
+    #     resampling_time_range=(500.0, 2000.0),
+    #     ranges=mdp.Uniform2dCoordCfg.Ranges(
+    #         pos_x=(-10.0, 10.0),
+    #         pos_y=(-10.0, 10.0),
+    #     ),
+    #     # use_env_spacing=True,
+    #     sample_local=True,
+    # )
 
     robot_goal = mdp.RobotGoalCommandCfg(
         # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
@@ -531,18 +534,21 @@ class TerminationsCfg:
     #     params={"goal_cmd_name": "robot_goal"},
     # )
 
+##################################################################
+# took out curriculum for now
+##################################################################
 
-@configclass
-class CurriculumCfg:
-    """Curriculum terms for the MDP."""
+# @configclass
+# class CurriculumCfg:
+#     """Curriculum terms for the MDP."""
 
-    goal_distance = CurrTerm(
-        func=mdp.modify_goal_distance,
-        params={
-            "step_size": 0.5,
-            "required_successes": 5,
-        },
-    )
+#     goal_distance = CurrTerm(
+#         func=mdp.modify_goal_distance,
+#         params={
+#             "step_size": 0.5,
+#             "required_successes": 5,
+#         },
+#     )
 
 
 ##
@@ -564,7 +570,7 @@ class CrowdNavigationEnvCfg(ManagerBasedRLEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
-    curriculum: CurriculumCfg = CurriculumCfg()
+    # curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         """Post initialization."""

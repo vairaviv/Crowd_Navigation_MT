@@ -109,6 +109,10 @@ class TeacherCurriculumCfg:
         },
     )
 
+    ########################################################
+    # Took out as goal commands are uniform2dgoalcommands atm
+    ########################################################
+
     goal_distance = CurrTerm(
         func=mdp.modify_goal_distance_relative_steps,
         params={
@@ -202,10 +206,11 @@ class TeacherRewardsCfg:
         func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
 
-    no_robot_movement = RewTerm(
-        func=mdp.no_robot_movement_2d,
-        weight=-5,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-    )
+    # took out because Observation can not handle history yet
+    # no_robot_movement = RewTerm(
+    #     func=mdp.no_robot_movement_2d,
+    #     weight=-5,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    # )
 
     #  penalty for being close to the obstacles
     close_to_obstacle = RewTerm(
