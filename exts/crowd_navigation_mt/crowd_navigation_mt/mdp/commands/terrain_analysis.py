@@ -21,7 +21,7 @@ import warp as wp
 from omni.isaac.lab.envs import ManagerBasedRLEnv
 from omni.isaac.lab.sensors import RayCaster, patterns, RayCasterCfg
 from omni.isaac.lab.utils import configclass
-from omni.isaac.lab.utils.warp import raycast_dynamic_meshes
+from omni.isaac.lab.utils.warp import raycast_dynamic_meshes, raycast_mesh
 
 
 @configclass
@@ -134,29 +134,41 @@ class TerrainAnalysis:
         N = 16
         if self._env.num_envs <= N:
             N = self._env.num_envs
-            
-        closest_meshes_list, keep_indices = self._extract_n_closest_meshes(sample_point.mean(dim=0), N=N)
-        mesh_positions = (
-            self._raycaster._data.mesh_positions_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32)
-        )
-        mesh_orientations = (
-            self._raycaster._data.mesh_orientations_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32)
-        )
 
-        # TODO add mesh_ids_wp
-        scan_2d_dists = raycast_dynamic_meshes(
-            ray_starts=sample_point.unsqueeze(1).repeat(1, len(self.scan_2d_directions), 1).to(torch.float32),
-            ray_directions=self.scan_2d_directions.unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32),
-            # meshes=np.tile(np.array(self._raycaster._meshes[0], dtype=wp.Mesh)[0], (len(sample_point), 1)),
-            mesh_ids_wp=self._raycaster._mesh_ids_wp,
-            # meshes=np.tile(np.array(closest_meshes_list, dtype=wp.Mesh), (len(sample_point), 1)),
-            mesh_positions_w=mesh_positions,
-            mesh_orientations_w=mesh_orientations,
-            max_dist=5,
-            return_distance=True,
-        )[1]
-        # point is valid if all distances are greater than min_wall_dist
-        return (scan_2d_dists > self.cfg.min_wall_dist).all(dim=1)
+        if self._env.scene.cfg.terrain.terrain_type == "plane":
+            valid_points_bools = torch.ones(len(sample_point), dtype=torch.bool)
+
+        else:   
+            closest_meshes_list, keep_indices = self._extract_n_closest_meshes(sample_point.mean(dim=0), N=N)
+            mesh_positions = (
+                self._raycaster._data.mesh_positions_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32)
+            )
+            mesh_orientations = (
+                self._raycaster._data.mesh_orientations_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32)
+            )
+
+            scan_2d_dists = raycast_dynamic_meshes(
+                ray_starts=sample_point.unsqueeze(1).repeat(1, len(self.scan_2d_directions), 1).to(torch.float32),
+                ray_directions=self.scan_2d_directions.unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32),
+                # meshes=np.tile(np.array(self._raycaster._meshes[0], dtype=wp.Mesh)[0], (len(sample_point), 1)),
+                mesh_ids_wp=self._raycaster._mesh_ids_wp,
+                # meshes=np.tile(np.array(closest_meshes_list, dtype=wp.Mesh), (len(sample_point), 1)),
+                mesh_positions_w=mesh_positions,
+                mesh_orientations_w=mesh_orientations,
+                max_dist=5,
+                return_distance=True,
+            )[1]
+
+            # scan_2d_dists = raycast_mesh(
+            #     ray_starts=sample_point.unsqueeze(1).repeat(1, len(self.scan_2d_directions), 1).to(torch.float32),
+            #     ray_directions=self.scan_2d_directions.unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32),
+            #     mesh_id=,
+            #     max_dist=1e6,
+            # )
+            # point is valid if all distances are greater than min_wall_dist
+            valid_points_bools = (scan_2d_dists > self.cfg.min_wall_dist).all(dim=1)
+        
+        return valid_points_bools
 
     def _extract_n_closest_meshes(self, center_point: torch.tensor, N: int, mesh_ids_to_keep: list[int] = [0]):
         # Adjust N based on the length of mesh_ids_to_keep

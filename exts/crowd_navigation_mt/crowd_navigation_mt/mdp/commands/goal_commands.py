@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from .commands_cfg import Uniform2dCoordCfg, RobotGoalCommandCfg, DirectionCommandCfg
 
 from .terrain_analysis import TerrainAnalysis, TerrainAnalysisCfg
-
+from .utils import RobotGoalCommandPlot
 
 class Uniform2dCoord(CommandTerm):
     """Command generator for generating pose commands uniformly.
@@ -269,6 +269,13 @@ class RobotGoalCommand(CommandTerm):
 
         self.angles = torch.tensor(cfg.angles, device=self.device) if cfg.angles is not None else None
 
+        # for plotting the commands 
+        # TODO get the terrain limits from env
+        self.visualize_plot = True
+        terrain_x_lim = (-10, 10)
+        terrain_y_lim = (-10, 10)
+        self.plot = RobotGoalCommandPlot(terrain_x_lim, terrain_y_lim)
+
     def __str__(self) -> str:
         msg = "GoalCommandGenerator:\n"
         msg += f"\tCommand dimension: {tuple(self.command.shape[1:])}\n"
@@ -297,9 +304,9 @@ class RobotGoalCommand(CommandTerm):
     def _resample_spawn_positions(self, env_ids: Sequence[int]):
         if self.terrain_analysis is not None:
             if len(env_ids) > 0:
-                # self.pos_spawn_w[env_ids] = self.terrain_analysis.sample_spawn(self.env.scene.env_origins[env_ids, :2])
+                self.pos_spawn_w[env_ids] = self.terrain_analysis.sample_spawn(self.env.scene.env_origins[env_ids, :2])
                 # TODO randomize spawnpositions currently taken out as raycast_dynamic_meshes doesnt work
-                self.pos_spawn_w[env_ids] = self.pos_spawn_w[env_ids]
+                # self.pos_spawn_w[env_ids] = self.pos_spawn_w[env_ids]
         else:
             self.pos_spawn_w[env_ids, :2] = self.env.scene.env_origins[env_ids, :2]
 
@@ -318,7 +325,14 @@ class RobotGoalCommand(CommandTerm):
         # random angle 90 deg spacing
 
         if self.use_grid_spacing:
-            terrain_spacing = self.env.scene.terrain.cfg.terrain_generator.size[0]
+            # try:
+            #     terrain_spacing = self.env.scene.terrain.cfg.terrain_generator.size[0]
+            # except AttributeError:
+            #     terrain_spacing = 1
+            if self.env.scene.terrain.cfg.terrain_type == "generator":
+                terrain_spacing = self.env.scene.terrain.cfg.terrain_generator.size[0]
+            else:
+                terrain_spacing = 1
             max_rel_spacing = self.goal_dist_rel[env_ids] * self.goal_dist_increment[env_ids]
 
             rand_floats_x = torch.rand_like(env_ids.float(), device=self.device)
@@ -353,8 +367,15 @@ class RobotGoalCommand(CommandTerm):
                 angles = self.angles
                 random_indices = torch.randint(0, len(angles), (len(env_ids),), device=self.device)
                 random_angle = angles[random_indices]
+            # try:
+            #     terrain_spacing = self.env.scene.terrain.cfg.terrain_generator.size[0]
+            # except AttributeError:
+            #     terrain_spacing = 1
 
-            terrain_spacing = self.env.scene.terrain.cfg.terrain_generator.size[0]
+            if self.env.scene.terrain.cfg.terrain_type == "generator":
+                terrain_spacing = self.env.scene.terrain.cfg.terrain_generator.size[0]
+            else:
+                terrain_spacing = 2
 
             # x_pos_b = self.goal_dist[env_ids] * torch.cos(random_angle)
             # y_pos_b = self.goal_dist[env_ids] * torch.sin(random_angle)
@@ -404,6 +425,8 @@ class RobotGoalCommand(CommandTerm):
         #     torch.zeros((self.heading_command_b.shape), device=self.device),
         #     self.heading_command_b,
         # )
+        if self.visualize_plot:
+            self.plot._plot(self)
 
     def _set_debug_vis_impl(self, debug_vis: bool):
         """Set the debug visualization for the command.
@@ -477,7 +500,7 @@ class RobotGoalCommand(CommandTerm):
         difference = torch.nn.functional.normalize(difference, dim=1)
         x_vec = torch.tensor([1, 0, 0]).float().to(self.pos_command_w.device)
         angle = -torch.acos(difference @ x_vec)
-        axis = torch.cross(difference, x_vec.expand_as(difference))
+        axis = torch.linalg.cross(difference, x_vec.expand_as(difference))
         quat = quat_from_angle_axis(angle, axis)
         # apply transforms
         self.line_to_goal_visualiser.visualize(translations=translations, scales=scales, orientations=quat)
@@ -553,13 +576,15 @@ class RobotGoalCommand(CommandTerm):
 
     def _clamp_to_area(self, pos: torch.Tensor) -> torch.Tensor:
         """Clamp a point to the arena."""
-        max_x, max_y = self.env.scene.terrain.terrain_origins.view(-1, 3).max(dim=0)[0][:2]
-        min_x, min_y = self.env.scene.terrain.terrain_origins.view(-1, 3).min(dim=0)[0][:2]
+        if self.env.scene.terrain.cfg.terrain_type == "generator":
 
-        # square_arena_side_length = math.ceil(self.num_envs**0.5) * self.env.cfg.scene.env_spacing
-        # pos[:, :2] = torch.clamp(pos[:, :2], -square_arena_side_length / 2, square_arena_side_length / 2)
-        pos[:, 0] = torch.clamp(pos[:, 0], min_x, max_x)
-        pos[:, 1] = torch.clamp(pos[:, 1], min_y, max_y)
+            max_x, max_y = self.env.scene.terrain.terrain_origins.view(-1, 3).max(dim=0)[0][:2]
+            min_x, min_y = self.env.scene.terrain.terrain_origins.view(-1, 3).min(dim=0)[0][:2]
+
+            # square_arena_side_length = math.ceil(self.num_envs**0.5) * self.env.cfg.scene.env_spacing
+            # pos[:, :2] = torch.clamp(pos[:, :2], -square_arena_side_length / 2, square_arena_side_length / 2)
+            pos[:, 0] = torch.clamp(pos[:, 0], min_x, max_x)
+            pos[:, 1] = torch.clamp(pos[:, 1], min_y, max_y)
 
         return pos
 

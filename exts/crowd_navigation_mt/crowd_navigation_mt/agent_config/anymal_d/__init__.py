@@ -20,16 +20,16 @@ from . import agents, navigation_env_cfg
 #     },
 # )
 
-# # staitc obstacles
-# gym.register(
-#     id="Isaac-CrowdNavigation-Teacher-StatObs-Anymal-D-v0",
-#     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-#     disable_env_checker=True,
-#     kwargs={
-#         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
-#         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacheConvCfg,
-#     },
-# )
+# static obstacles
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-StatObs-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherBaseCfg,
+    },
+)
 
 
 # # staitc obstacles with heightscan
@@ -79,7 +79,7 @@ from . import agents, navigation_env_cfg
 
 
 #################################################
-#  static obstacles trials
+# Trials
 #################################################
 
 gym.register(

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import os
 import math
 from dataclasses import MISSING
 
@@ -26,7 +27,8 @@ from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import crowd_navigation_mt.mdp as mdp  # noqa: F401, F403
 from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR as ORBIT_ASSETS_DATA_DIR
-import os
+from crowd_navigation_mt import CROWDNAV_DATA_DIR
+
 
 ##
 # Pre-defined configs
@@ -35,6 +37,7 @@ from omni.isaac.lab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: sk
 from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
 # from crowd_navigation_mt.terrains.test_terrains_cfg import OBS_TERRAINS_CFG
 from nav_tasks.sensors import adjust_ray_caster_camera_image_size, ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg
+from crowd_navigation_mt.mdp import ObservationHistoryTermCfg
 
 """To improve: we have 3 separate goal_reached functions, one for logging, one for reward and one for termination"""
 
@@ -58,10 +61,10 @@ ISAAC_GYM_JOINT_NAMES = [
 ]
 
 
-OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=20)
+# OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=20)
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 
-from crowd_navigation_mt.terrains.config.rough import ROUGH_TERRAINS_CFG, OBS_TERRAINS_CFG  # isort: skip
+from crowd_navigation_mt.terrains.config import ROUGH_TERRAINS_CFG, OBS_TERRAINS_CFG  # isort: skip
 
 
 @configclass
@@ -96,7 +99,7 @@ class StatObsScene(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/LF_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=FootScanPatternCfg(),
+        pattern_cfg=patterns.FootScanPatternCfg(),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         max_distance=100.0,
@@ -106,7 +109,7 @@ class StatObsScene(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/RF_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=FootScanPatternCfg(),
+        pattern_cfg=patterns.FootScanPatternCfg(),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         max_distance=100.0,
@@ -116,7 +119,7 @@ class StatObsScene(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/LH_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=FootScanPatternCfg(),
+        pattern_cfg=patterns.FootScanPatternCfg(),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         max_distance=100.0,
@@ -126,7 +129,7 @@ class StatObsScene(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/RH_FOOT",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         attach_yaw_only=True,
-        pattern_cfg=FootScanPatternCfg(),
+        pattern_cfg=patterns.FootScanPatternCfg(),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         max_distance=100.0,
@@ -181,16 +184,14 @@ class ActionsCfg:
         low_level_action=mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=[".*"], scale=1.0, use_default_offset=False
         ),
-
-        # code still from orbit
-        # low_level_decimation=4,
-        # low_level_policy_file=os.path.join(
-        #     ORBIT_ASSETS_DATA_DIR, "Robots/RSL-ETHZ/ANYmal-D", "perceptive_locomotion_jit.pt"
-        # ),
-        # reorder_joint_list=ISAAC_GYM_JOINT_NAMES,
-        # observation_group="low_level_policy",
-        # scale=[1, 0.5, 2.0],
-        # offset=[-0.25, -0.25, -1.0],
+        low_level_decimation=4,
+        low_level_policy_file=os.path.join(
+            CROWDNAV_DATA_DIR, "Policies", "perceptive_locomotion_jit.pt"
+        ),
+        reorder_joint_list=ISAAC_GYM_JOINT_NAMES,
+        observation_group="low_level_policy",
+        scale=[1.5, 0.5, 2.0],
+        offset=[-0.25, -0.25, -1.0],
     )
 
 
@@ -241,17 +242,17 @@ class ObservationsCfg:
 
         # Positions
         robot_position = ObsTerm(func=mdp.metrics_robot_position)
-        # start_position = ObsTerm(func=mdp.metrics_start_position)
-        # goal_position = ObsTerm(func=mdp.metrics_goal_position)
+        start_position = ObsTerm(func=mdp.metrics_start_position)
+        goal_position = ObsTerm(func=mdp.metrics_goal_position)
         # Path Length
-        # path_length = ObsTerm(func=mdp.metrics_path_length)
+        path_length = ObsTerm(func=mdp.metrics_path_length)
         # Episode Signals
         timeout_signal = ObsTerm(func=mdp.metrics_timeout_signal)
         termination_signal = ObsTerm(func=mdp.metrics_termination_signal)
         dones_signal = ObsTerm(func=mdp.metrics_dones_signal)
-        # goal_reached = ObsTerm(
-        #     func=mdp.metrics_goal_reached, params={"distance_threshold": 0.5, "speed_threshold": 1.2}
-        # )  # do not care about speed
+        goal_reached = ObsTerm(
+            func=mdp.metrics_goal_reached, params={"distance_threshold": 0.5, "speed_threshold": 1.2}
+        )  # take out if we do not care about speed
         undesired_contacts = ObsTerm(
             func=mdp.metrics_undesired_contacts,
             params={"threshold": 0.01, "body_names": [".*THIGH", ".*HIP", ".*SHANK", "base"]},
@@ -259,7 +260,11 @@ class ObservationsCfg:
         episode_length = ObsTerm(func=mdp.metrics_episode_length)
 
         # For Computing Rewards
-        robot_position_history = ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env), clip=None)
+        robot_position_history = ObservationHistoryTermCfg(
+            func=mdp.ObservationHistory,
+            params={"kwargs" : {"method": "get_history_of_positions"}},
+            history_length_actions=1,
+            history_length_positions=10) # ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env), clip=None)
 
         def __post_init__(self):
             self.enable_corruption = False

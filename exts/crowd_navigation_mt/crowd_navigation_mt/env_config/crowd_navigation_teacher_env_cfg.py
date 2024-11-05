@@ -72,11 +72,16 @@ class TeacherPolicyObsCfg(ObsGroup):
     #     clip=(-100.0, 100.0),
     # )
 
-    lidar_distances_history = ObsTerm(
-        func=lambda env: LIDAR_HISTORY.get_history(env),
-        clip=(-100.0, 100.0),
-    )
+    # TODO currently the policy doesnt observe the lidar history
 
+    # lidar_distances_history = ObsTerm(
+    #     func=lambda env: LIDAR_HISTORY.get_history(env),
+    #     clip=(-100.0, 100.0),
+    # )
+
+    # the lower terms never worked before and were commented out from the start:
+    # ---------------------------------------------------------------------------
+    #
     # height_scanner = ObsTerm(
     #     func=mdp.heigh_scan_binary,
     #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
@@ -106,7 +111,8 @@ TERRAIN_CURRICULUM = mdp.TerrainLevelsDistance()
 class TeacherCurriculumCfg:
     """Curriculum terms for the MDP."""
 
-    terrain_levels = CurrTerm(func=TERRAIN_CURRICULUM.terrain_levels)  # noqa: F821
+    # TODO implement the terrain level curriculum currently does not work
+    # terrain_levels = CurrTerm(func=TERRAIN_CURRICULUM.terrain_levels)  # noqa: F821
 
     goal_distance = CurrTerm(
         func=mdp.modify_goal_distance_relative_steps,
@@ -173,10 +179,12 @@ class TeacherRewardsCfg:
         func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
 
-    no_robot_movement = RewTerm(
-        func=mdp.no_robot_movement_2d,
-        weight=-5,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-    )
+    # TODO as observations dont work last_obs is not in observation_manager, need to fix this
+
+    # no_robot_movement = RewTerm(
+    #     func=mdp.no_robot_movement_2d,
+    #     weight=-5,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    # )
 
     #  penalty for being close to the obstacles
     close_to_obstacle = RewTerm(
@@ -293,7 +301,7 @@ class CrowdNavigationTeacherEnvCfg(CrowdNavigationEnvCfg):
             history_length=0,
             # mesh_prim_paths=["/World/ground", self.scene.obstacle.prim_path],
             mesh_prim_paths=["/World/ground"],
-            track_mesh_transforms=False,
+            track_mesh_transforms=True,
 
             # these arguments are not implemented currently, probably 
             # max_meshes=1,

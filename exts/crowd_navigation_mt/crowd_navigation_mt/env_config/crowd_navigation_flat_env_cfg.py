@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, The ISAACLAB Project Developers.
+# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -10,8 +10,8 @@ import math
 from dataclasses import MISSING
 
 import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
-from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
+from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg
+from omni.isaac.lab.envs.manager_based_rl_env_cfg import ManagerBasedRLEnvCfg 
 from omni.isaac.lab.managers import CurriculumTermCfg as CurrTerm
 from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
@@ -25,24 +25,19 @@ from omni.isaac.lab.terrains import TerrainImporterCfg
 from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
-import crowd_navigation_mt.mdp as mdp 
-# import crowd_navigation_mt.sensors import patterns
-from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
+import crowd_navigation_mt.mdp as mdp  # noqa: F401, F403
+from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR as ORBIT_ASSETS_DATA_DIR
 from crowd_navigation_mt import CROWDNAV_DATA_DIR
-from crowd_navigation_mt.mdp import ObservationHistoryTermCfg
+
 
 ##
 # Pre-defined configs
 ##
 from omni.isaac.lab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
-from crowd_navigation_mt.assets.simple_obstacles import (
-    OBS_CFG,
-    EMPTY_OBS_CFG,
-    CYLINDER_HUMANOID_CFG,
-    MY_RAY_CASTER_MARKER_CFG,
-    WALL_CFG,
-)
+# from crowd_navigation_mt.terrains.test_terrains_cfg import OBS_TERRAINS_CFG
+from nav_tasks.sensors import adjust_ray_caster_camera_image_size, ZED_X_MINI_WIDE_RAYCASTER_CFG, FootScanPatternCfg
+from crowd_navigation_mt.mdp import ObservationHistoryTermCfg
 
 """To improve: we have 3 separate goal_reached functions, one for logging, one for reward and one for termination"""
 
@@ -65,64 +60,32 @@ ISAAC_GYM_JOINT_NAMES = [
     "RH_KFE",
 ]
 
+# MDP function specific parameters
+DISTANCE_THRESHOLD = 0.5
+SPEED_THRESHOLD = 0.5
 
+
+# OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=20)
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 
-from crowd_navigation_mt.terrains.config import (
-    ROUGH_TERRAINS_CFG,
-    OBS_TERRAINS_CFG,
-    OBS_TERRAINS_DYNOBS_CFG,
-)  # isort: skip
+from crowd_navigation_mt.terrains.config import ROUGH_TERRAINS_CFG, OBS_TERRAINS_CFG  # isort: skip
 
 
 @configclass
-class FlatWallObsScene(InteractiveSceneCfg):
+class FlatScene(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
-
-    # terrain = TerrainImporterCfg(
-    #     prim_path="/World/ground",
-    #     terrain_type="usd",
-    #     usd_path=os.path.join(ISAACLAB_ASSETS_DATA_DIR, "Terrains", "wall_terrain.usd"),
-    #     max_init_terrain_level=1,
-    #     collision_group=-1,
-    #     physics_material=sim_utils.RigidBodyMaterialCfg(
-    #         friction_combine_mode="multiply",
-    #         restitution_combine_mode="multiply",
-    #         static_friction=1.0,
-    #         dynamic_friction=0.9,
-    #     ),
-    #     visual_material=sim_utils.MdlFileCfg(
-    #         mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
-    #         project_uvw=True,
-    #     ),
-    #     debug_vis=False,
-    #     # usd_uniform_env_spacing=10.0,  # 10m spacing between environment origins in the usd environment
-    # )
 
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
-        terrain_type="generator",
-        terrain_generator=OBS_TERRAINS_DYNOBS_CFG, # OBS_TERRAINS_DYNOBS_CFG, OBS_TERRAINS_CFG
+        terrain_type="plane",
+        terrain_generator=None,
+        max_init_terrain_level=None,
         collision_group=-1,
-        # env_spacing=8.0,
-        physics_material=sim_utils.RigidBodyMaterialCfg(
-            friction_combine_mode="multiply",
-            restitution_combine_mode="multiply",
-            static_friction=1.0,
-            dynamic_friction=1.0,
-        ),
-        # visual_material=sim_utils.MdlFileCfg(
-        #     mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
-        #     project_uvw=True,
-        # ),
-        debug_vis=False,
+        debug_vis=True,
     )
 
     # robots
     robot: ArticulationCfg = MISSING
-
-    # obstacles:
-    obstacle: AssetBaseCfg = MISSING
 
     # sensors
     foot_scanner_lf = RayCasterCfg(
@@ -167,41 +130,11 @@ class FlatWallObsScene(InteractiveSceneCfg):
 
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
-    lidar : RayCasterCfg = MISSING
-
-
-    # lidar: RayCasterCfg = RayCasterCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/base",
-    #     mesh_prim_paths=["/World/ground"],
-    #     pattern_cfg=patterns.LidarPatternCfg(
-    #         channels=1,
-    #         vertical_fov_range=(0.0, 0.0),
-    #         horizontal_fov_range=(0, 360),
-    #         horizontal_res=1,
-    #     ),
-
-    # )
+    lidar: RayCasterCfg = MISSING
 
     light = AssetBaseCfg(
         prim_path="/World/skyLight",
         spawn=sim_utils.DomeLightCfg(color=(0.13, 0.13, 0.13), intensity=10000.0),
-    )
-
-
-@configclass
-class DynObsSceneCfg(FlatWallObsScene):
-    obstacle = OBS_CFG.replace(
-        prim_path="{ENV_REGEX_NS}/Obstacle",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 5.0, 5.0), lin_vel=(0.0, 0.0, 0.0)),
-    )
-
-    dummy_raycaster_obstacle = RayCasterCfg(
-        prim_path="{ENV_REGEX_NS}/Obstacle",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-        attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.2, size=[1.0, 1.0]),
-        debug_vis=False,
-        mesh_prim_paths=["/World/ground"],
     )
 
 
@@ -212,32 +145,9 @@ class DynObsSceneCfg(FlatWallObsScene):
 
 @configclass
 class CommandsCfg:
-    """Command specifications for the MDP.
-    In this task, the commands probably will be the goal positions for the robot to reach."""
-
-    # target pos for the obstacle
-    obstacle_target_pos = mdp.Uniform2dCoordCfg(
-        asset_name="obstacle",
-        resampling_time_range=(5.0, 20.0),
-        ranges=mdp.Uniform2dCoordCfg.Ranges(
-            pos_x=(-10.0, 10.0),
-            pos_y=(-10.0, 10.0),
-        ),
-        # use_env_spacing=True,
-        sample_local=True,
-    )
-
-    # robot_goal = mdp.Uniform2dCoordCfg(
-    #     asset_name="robot",
-    #     resampling_time_range=(500.0, 2000.0),
-    #     ranges=mdp.Uniform2dCoordCfg.Ranges(
-    #         pos_x=(-10.0, 10.0),
-    #         pos_y=(-10.0, 10.0),
-    #     ),
-    #     # use_env_spacing=True,
-    #     sample_local=True,
-    # )
-
+    """Command specifications for the MDP."""
+    
+    # target pos for the robot. the agent has to learn to move to this position
     robot_goal = mdp.RobotGoalCommandCfg(
         # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
         asset_name="robot",
@@ -246,36 +156,16 @@ class CommandsCfg:
         radius=5.0,
         terrain_analysis=mdp.TerrainAnalysisCfg(
             raycaster_sensor="lidar",
-        ),  # not required for generated terrains, but for moving environments
-        # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
-        use_grid_spacing=True,
+        ),
+        # set it to true if terrain_generator is used in self.env.scene.terrain.cfg.terrain_cfg
+        use_grid_spacing=False,
+        
     )
-
-    # # target pos for the robot. the agent has to learn to move to this position
-    # robot_goal = mdp.RobotGoalCommandCfg(
-    #     # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
-    #     asset_name="robot",
-    #     resampling_time_range=(100000.0, 100000.0),  # resample only on reset
-    #     debug_vis=True,
-    #     radius=5.0,
-    #     terrain_analysis=mdp.TerrainAnalysisCfg(
-    #         raycaster_sensor="lidar",
-    #     ),
-    # )
 
 
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-
-    obstacle_bot_positions = mdp.ObstacleActionTermSimpleCfg(
-        asset_name="obstacle",
-        max_velocity=5,
-        max_acceleration=5,
-        max_rotvel=6,
-        obstacle_center_height=1.05,
-        raycaster_sensor="dummy_raycaster_obstacle",
-    )
 
     velocity_command = mdp.PerceptiveNavigationSE2ActionCfg(
         asset_name="robot",
@@ -334,12 +224,50 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = True
 
-    # obstacle positions
     @configclass
-    class ObstacleControlCfg(ObsGroup):
-        """Observations for obstacle group."""
+    class TeacherPolicyObsCfg(ObsGroup):
+        """Observations for the teacher policy"""
 
-        position_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "obstacle_target_pos"})
+        # commands
+        target_position = ObsTerm(
+            func=mdp.generated_commands_reshaped, params={"command_name": "robot_goal", "flatten": True}  # robot_goal
+        )
+
+        # add cpg state to the proprioception group
+
+        # cpg_state = ObsTerm(func=mdp.cgp_state)
+
+        # privileged sensor observations
+        # lidar_distances = ObsTerm(
+        #     func=mdp.lidar_obs_dist,
+        #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
+        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-100.0, 100.0),
+        # )
+
+        # TODO currently the policy doesnt observe the lidar history
+
+        # lidar_distances_history = ObsTerm(
+        #     func=lambda env: LIDAR_HISTORY.get_history(env),
+        #     clip=(-100.0, 100.0),
+        # )
+
+        # height_scanner = ObsTerm(
+        #     func=mdp.heigh_scan_binary,
+        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+        # )
+
+        # lidar_mesh_velocities = ObsTerm(
+        #     func=mdp.lidar_obs_vel_rel_2d,
+        #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
+        #     clip=(-100.0, 100.0),
+        # )
+
+        # # optional segmentation
+        # segmentation = ObsTerm(
+        #     func=mdp.lidar_panoptic_segmentation,
+        #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
+        # )
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -348,8 +276,6 @@ class ObservationsCfg:
     @configclass
     class DataLoggingCfg(ObsGroup):
         """Observations for data logging."""
-
-        # OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=10)
 
         # Positions
         robot_position = ObsTerm(func=mdp.metrics_robot_position)
@@ -362,8 +288,8 @@ class ObservationsCfg:
         termination_signal = ObsTerm(func=mdp.metrics_termination_signal)
         dones_signal = ObsTerm(func=mdp.metrics_dones_signal)
         goal_reached = ObsTerm(
-            func=mdp.metrics_goal_reached, params={"distance_threshold": 0.5, "speed_threshold": 1.2}
-        )  # do not care about speed
+            func=mdp.metrics_goal_reached, params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": 1.2}
+        )  # take out if we do not care about speed
         undesired_contacts = ObsTerm(
             func=mdp.metrics_undesired_contacts,
             params={"threshold": 0.01, "body_names": [".*THIGH", ".*HIP", ".*SHANK", "base"]},
@@ -375,8 +301,8 @@ class ObservationsCfg:
             func=mdp.ObservationHistory,
             params={"kwargs" : {"method": "get_history_of_positions"}},
             history_length_actions=1,
-            history_length_positions=10)
-        
+            history_length_positions=10) # ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env), clip=None)
+
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = False
@@ -385,14 +311,11 @@ class ObservationsCfg:
     # # observations for the low-level pretrained policy (not obs of the actual agent)
     low_level_policy: LocomotionPolicyCfg = LocomotionPolicyCfg()
 
-    # # obstacles
-    obstacle_control: ObstacleControlCfg = ObstacleControlCfg()
-
     # logging
     metrics: DataLoggingCfg = DataLoggingCfg()
 
     # policy
-    policy: ObsGroup = MISSING
+    policy: ObsGroup = TeacherPolicyObsCfg()
 
 
 @configclass
@@ -413,8 +336,9 @@ class EventCfg:
     )
 
     # reset
+    # TODO curriculum spawning
     # reset_base = EventTerm(
-    #     func=mdp.reset_root_state_uniform,  # reset_root_state_uniform,
+    #     func=mdp.reset_root_state_uniform,
     #     mode="reset",
     #     params={
     #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "z": (0.2, 0.2), "yaw": (-0.5, 0.5)},
@@ -429,7 +353,6 @@ class EventCfg:
     #     },
     # )
 
-    # TODO curriculum spawning
     reset_base = EventTerm(
         func=mdp.reset_robot_position,
         mode="reset",
@@ -457,8 +380,8 @@ class RewardsCfg:
     # -- tasks
     goal_reached = RewTerm(
         func=mdp.goal_reached,  # reward is high to compensate for reset penalty
-        weight=205.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
-        params={"distance_threshold": 0.5, "speed_threshold": 0.1},
+        weight=500.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
+        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": 0.1},
     )
     goal_progress = RewTerm(
         func=mdp.goal_progress,
@@ -470,85 +393,58 @@ class RewardsCfg:
         params={"threshold": 0.5},
     )
 
-    # -- penalties
-    lateral_movement = RewTerm(
-        func=mdp.lateral_movement,
-        weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    backward_movement = RewTerm(
-        func=mdp.backwards_movement,
-        weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    episode_termination = RewTerm(
-        func=mdp.is_terminated,
-        weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
-    )
-    action_rate_l2 = RewTerm(
-        func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    """
-    no_robot_movement = RewTerm(
-        func=mdp.no_robot_movement,
-        weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"goal_distance_thresh": 0.5},
-    )
-    """
-
-    # undesired_contacts = RewTerm(
-    #     func=mdp.undesired_contacts,
-    #     weight=-1.0,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
+    # # -- penalties
+    # lateral_movement = RewTerm(
+    #     func=mdp.lateral_movement,
+    #     weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     # )
-    # # -- optional penalties
-    # flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
-    # dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
+    # backward_movement = RewTerm(
+    #     func=mdp.backwards_movement,
+    #     weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
+    # episode_termination = RewTerm(
+    #     func=mdp.is_terminated,
+    #     weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
+    # )
+    # action_rate_l2 = RewTerm(
+    #     func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
 
 
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    # # time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
-    # )
-    # thigh_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
-    # )
+    # time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
-    # goal_reached = DoneTerm(
-    #     func=mdp.at_goal,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "distance_threshold": 0.5,
-    #         "speed_threshold": 1.0,
-    #         "goal_cmd_name": "robot_goal",
-    #     },
-    #     time_out=True,
-    # )
+    illegal_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"),
+            "threshold": 1.0,
+        },
+    )
 
-    # update_commands = DoneTerm(
-    #     func=mdp.update_command_on_termination,
-    #     params={"goal_cmd_name": "robot_goal"},
-    # )
+    goal_reached = DoneTerm(
+        func=mdp.at_goal,  # reward is high to compensate for reset penalty
+        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": 2.5},
+    )
 
-##################################################################
-# took out curriculum for now
-##################################################################
 
-# @configclass
-# class CurriculumCfg:
-#     """Curriculum terms for the MDP."""
+@configclass
+class CurriculumCfg:
+    """Curriculum terms for the MDP."""
 
-#     goal_distance = CurrTerm(
-#         func=mdp.modify_goal_distance,
-#         params={
-#             "step_size": 0.5,
-#             "required_successes": 5,
-#         },
-#     )
+    goal_distance = CurrTerm(
+        func=mdp.modify_goal_distance_relative_steps,
+        params={
+            "command_name": "robot_goal",
+            "start_size": 0.5,
+            "end_size": 2,
+            "start_step": 20_000,
+            "num_steps": 40_000,
+        },
+    )
 
 
 ##
@@ -557,11 +453,11 @@ class TerminationsCfg:
 
 
 @configclass
-class CrowdNavigationEnvCfg(ManagerBasedRLEnvCfg):
+class CrowdNavigationFlatEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
-    scene: DynObsSceneCfg = DynObsSceneCfg(num_envs=2, env_spacing=2)
+    scene: FlatScene = FlatScene(num_envs=2, env_spacing=5)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -570,7 +466,7 @@ class CrowdNavigationEnvCfg(ManagerBasedRLEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
-    # curriculum: CurriculumCfg = CurriculumCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         """Post initialization."""
@@ -579,16 +475,34 @@ class CrowdNavigationEnvCfg(ManagerBasedRLEnvCfg):
         self.episode_length_s = 30
 
         # DO NOT CHANGE
-        self.decimation = int(200 / self.fz_planner)  # low/high level planning runs at 25Hz
+        self.decimation = int(200 / self.fz_planner)  # ratio of actions to physics updates
         self.low_level_decimation = 4  # low level controller runs at 50Hz
 
         # simulation settings
-        self.sim.dt = 0.005
+        self.sim.dt = 0.005  # 200Hz
         self.sim.disable_contact_processing = True
-        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 2**26
         # self.sim.physics_material = self.scene.terrain.physics_material
 
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
+
+        self.scene.lidar = RayCasterCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/base",
+            update_period=1 / self.fz_planner,  # 0.1, lidar hz =  planner hz = 10
+            offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
+            attach_yaw_only=True,
+            pattern_cfg=patterns.LidarPatternCfg(
+                channels=1,
+                vertical_fov_range=(0.0, 0.0),
+                horizontal_fov_range=(0, 360),
+                horizontal_res=1,
+            ),
+            max_distance=100.0,
+            drift_range=(-0.0, 0.0),
+            debug_vis=False,
+            history_length=0,
+            mesh_prim_paths=["/World/ground"],
+            track_mesh_transforms=True,
+        )

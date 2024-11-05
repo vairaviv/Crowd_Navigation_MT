@@ -99,6 +99,7 @@ def goal_reached(
 
     env_ids = torch.nonzero(reward).flatten()
 
+    # TODO check if it is done somewhere else
     # goal_cmd_geneator.increment_goal_distance(env_ids)
     goal_cmd_geneator._resample_command(env_ids)
 

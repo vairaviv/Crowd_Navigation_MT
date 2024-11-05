@@ -161,7 +161,7 @@ class MySceneCfg(InteractiveSceneCfg):
         history_length=1,
         # mesh_prim_paths=["/World/ground", "{ENV_REGEX_NS}/Obstacle/geometry/mesh"],
         mesh_prim_paths=["/World/ground"],
-        track_mesh_transforms=False,
+        track_mesh_transforms=True,
     )
 
     # lidar = RayCasterCfg(  # dummy lidar to not generate to much data
@@ -203,7 +203,7 @@ class MySceneCfg(InteractiveSceneCfg):
         history_length=1,
         # mesh_prim_paths=["/World/ground", "{ENV_REGEX_NS}/Obstacle/geometry/mesh"],
         mesh_prim_paths=["/World/ground"],
-        track_mesh_transforms=False,
+        track_mesh_transforms=True,
     )
 
     sky_light = AssetBaseCfg(
