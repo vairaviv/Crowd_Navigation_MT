@@ -20,6 +20,17 @@ from . import agents, navigation_env_cfg
 #     },
 # )
 
+# flat terrain for testing
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-Flat-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherFlatEnvCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherBaseCfg,
+    },
+)
+
 # static obstacles
 gym.register(
     id="Isaac-CrowdNavigation-Teacher-StatObs-Anymal-D-v0",
@@ -97,7 +108,7 @@ gym.register(
     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynEnvCfg,
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherBaseCfg,
     },
 )
