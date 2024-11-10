@@ -27,6 +27,8 @@ from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg
 
 
 from .crowd_navigation_stat_obs_base_env_cfg import CrowdNavigationEnvCfg
+from crowd_navigation_mt.mdp import LidarHistoryTermCfg
+
 from omni.isaac.lab.managers import CurriculumTermCfg as CurrTerm
 from typing import Literal
 
@@ -46,9 +48,9 @@ from typing import Literal
 
 # observation group:
 # ie default lidar dist
-LIDAR_HISTORY = mdp.LidarHistory(
-    history_length=1, decimation=1, sensor_cfg=SceneEntityCfg("lidar"), return_pose_history=True
-)
+# LIDAR_HISTORY = mdp.LidarHistory(
+#     history_length=1, decimation=1, sensor_cfg=SceneEntityCfg("lidar"), return_pose_history=True
+# )
 
 
 @configclass
@@ -65,14 +67,23 @@ class TeacherPolicyObsCfg(ObsGroup):
     cpg_state = ObsTerm(func=mdp.cgp_state)
 
     # privileged sensor observations
-    # lidar_distances = ObsTerm(
-    #     func=mdp.lidar_obs_dist,
-    #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
-    #     # noise=Unoise(n_min=-0.1, n_max=0.1),
-    #     clip=(-100.0, 100.0),
-    # )
+    lidar_distances = ObsTerm(
+        func=mdp.lidar_obs_dist,
+        params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
+        # noise=Unoise(n_min=-0.1, n_max=0.1),
+        clip=(-100.0, 100.0),
+    )
 
     # TODO currently the policy doesnt observe the lidar history
+
+    # lidar_distances_history = LidarHistoryTermCfg(
+    #     func=mdp.LidarHistory,
+    #     params={"kwargs" : {"method": "get_history"}},
+    #     history_length=1, 
+    #     decimation=1, 
+    #     sensor_cfg=SceneEntityCfg("lidar"), 
+    #     return_pose_history=True
+    # )
 
     # lidar_distances_history = ObsTerm(
     #     func=lambda env: LIDAR_HISTORY.get_history(env),
@@ -111,19 +122,22 @@ TERRAIN_CURRICULUM = mdp.TerrainLevelsDistance()
 class TeacherCurriculumCfg:
     """Curriculum terms for the MDP."""
 
+    pass
+
+
     # TODO implement the terrain level curriculum currently does not work
     # terrain_levels = CurrTerm(func=TERRAIN_CURRICULUM.terrain_levels)  # noqa: F821
 
-    goal_distance = CurrTerm(
-        func=mdp.modify_goal_distance_relative_steps,
-        params={
-            "command_name": "robot_goal",
-            "start_size": 3,
-            "end_size": 3,
-            "start_step": 20_000,
-            "num_steps": 40_000,
-        },
-    )  # noqa: F821
+    # goal_distance = CurrTerm(
+    #     func=mdp.modify_goal_distance_relative_steps,
+    #     params={
+    #         "command_name": "robot_goal",
+    #         "start_size": 3,
+    #         "end_size": 3,
+    #         "start_step": 20_000,
+    #         "num_steps": 40_000,
+    #     },
+    # )  # noqa: F821
 
 
 @configclass
@@ -160,31 +174,31 @@ class TeacherRewardsCfg:
 
     # -- penalties
 
-    lateral_movement = RewTerm(
-        func=mdp.lateral_movement,
-        weight=-0.05,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-
-    backward_movement = RewTerm(
-        func=mdp.backwards_movement,
-        weight=-0.05,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-
-    episode_termination = RewTerm(
-        func=mdp.is_terminated,
-        weight=-500.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
-    )
-
-    action_rate_l2 = RewTerm(
-        func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-
-    # TODO as observations dont work last_obs is not in observation_manager, need to fix this
-
-    # no_robot_movement = RewTerm(
-    #     func=mdp.no_robot_movement_2d,
-    #     weight=-5,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    # lateral_movement = RewTerm(
+    #     func=mdp.lateral_movement,
+    #     weight=-0.05,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     # )
+
+    # backward_movement = RewTerm(
+    #     func=mdp.backwards_movement,
+    #     weight=-0.05,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
+
+    # episode_termination = RewTerm(
+    #     func=mdp.is_terminated,
+    #     weight=-500.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
+    # )
+
+    # action_rate_l2 = RewTerm(
+    #     func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
+
+    # # TODO as observations dont work last_obs is not in observation_manager, need to fix this
+
+    # # no_robot_movement = RewTerm(
+    # #     func=mdp.no_robot_movement_2d,
+    # #     weight=-5,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    # # )
 
     #  penalty for being close to the obstacles
     close_to_obstacle = RewTerm(
@@ -193,24 +207,24 @@ class TeacherRewardsCfg:
         params={"threshold": 0.75, "dist_std": 0.2, "dist_sensor": SceneEntityCfg("lidar")},
     )
 
-    obstacle_in_front_narrow = RewTerm(
-        func=mdp.obstacle_distance_in_front,
-        weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 2, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 30},
-    )
+    # obstacle_in_front_narrow = RewTerm(
+    #     func=mdp.obstacle_distance_in_front,
+    #     weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    #     params={"threshold": 2, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 30},
+    # )
 
-    obstacle_in_front_wide = RewTerm(
-        func=mdp.obstacle_distance_in_front,
-        weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 1, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60},
-    )
+    # obstacle_in_front_wide = RewTerm(
+    #     func=mdp.obstacle_distance_in_front,
+    #     weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    #     params={"threshold": 1, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60},
+    # )
 
     # far_from_obstacle = RewTerm(
     #     func=mdp.obstacle_distance,
     #     weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
     #     params={"threshold": 1, "dist_std": 5, "dist_sensor": SceneEntityCfg("lidar")},
     # )
-    # TODO add penality for obstacles being in front of the robot
+    # # TODO add penality for obstacles being in front of the robot
 
     # penalty for colliding with obstacles
     undesired_contacts = RewTerm(
@@ -222,10 +236,10 @@ class TeacherRewardsCfg:
         },
     )
 
-    # time penalty, should encourage the agent to reach the goal as fast as possible
-    is_alive_penalty = RewTerm(
-        func=mdp.is_alive, weight=-1e-2  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
-    )
+    # # time penalty, should encourage the agent to reach the goal as fast as possible
+    # is_alive_penalty = RewTerm(
+    #     func=mdp.is_alive, weight=-1e-2  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
+    # )
 
 
 @configclass

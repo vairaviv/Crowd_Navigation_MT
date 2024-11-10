@@ -24,6 +24,9 @@ from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg
 
 
 from .crowd_navigation_dyn_obs_base_env_cfg import CrowdNavigationEnvCfg
+
+from crowd_navigation_mt.mdp import LidarHistoryTermCfg
+
 from omni.isaac.lab.managers import CurriculumTermCfg as CurrTerm
 
 
@@ -41,7 +44,7 @@ from crowd_navigation_mt.assets.simple_obstacles import (
 )
 
 
-LIDAR_HISTORY = mdp.LidarHistory(history_length=1, sensor_cfg=SceneEntityCfg("lidar"), return_pose_history=False)
+# LIDAR_HISTORY = mdp.LidarHistory(history_length=1, sensor_cfg=SceneEntityCfg("lidar"), return_pose_history=False)
 
 
 # observation group:
@@ -71,6 +74,15 @@ class TeacherPolicyObsCfg(ObsGroup):
     #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
     #     clip=(-100.0, 100.0),
     # )
+
+    lidar_distances_history = LidarHistoryTermCfg(
+        func=mdp.LidarHistory,
+        params={"kwargs" : {"method": "get_history"}},
+        history_length=1, 
+        decimation=1, 
+        sensor_cfg=SceneEntityCfg("lidar"), 
+        return_pose_history=True
+    )
 
     # lidar_distances_history = ObsTerm(
     #     func=lambda env: LIDAR_HISTORY.get_history(env),

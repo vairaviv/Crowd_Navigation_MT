@@ -355,38 +355,38 @@ class RewardsCfg:
         params={"threshold": 0.5},
     )
 
-    # -- penalties
-    lateral_movement = RewTerm(
-        func=mdp.lateral_movement,
-        weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    backward_movement = RewTerm(
-        func=mdp.backwards_movement,
-        weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    episode_termination = RewTerm(
-        func=mdp.is_terminated,
-        weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
-    )
-    action_rate_l2 = RewTerm(
-        func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-
-    # modification from previous project not implemented in IsaacLab and currently not needed
-    # no_robot_movement = RewTerm(
-    #     func=mdp.no_robot_movement,
-    #     weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-    #     params={"goal_distance_thresh": 0.5},
+    # # -- penalties
+    # lateral_movement = RewTerm(
+    #     func=mdp.lateral_movement,
+    #     weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
+    # backward_movement = RewTerm(
+    #     func=mdp.backwards_movement,
+    #     weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
+    # episode_termination = RewTerm(
+    #     func=mdp.is_terminated,
+    #     weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
+    # )
+    # action_rate_l2 = RewTerm(
+    #     func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     # )
 
-    # undesired_contacts = RewTerm(
-    #     func=mdp.undesired_contacts,
-    #     weight=-1.0,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
-    # )
-    # # -- optional penalties
-    # flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
-    # dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
+    # # modification from previous project not implemented in IsaacLab and currently not needed
+    # # no_robot_movement = RewTerm(
+    # #     func=mdp.no_robot_movement,
+    # #     weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    # #     params={"goal_distance_thresh": 0.5},
+    # # )
+
+    # # undesired_contacts = RewTerm(
+    # #     func=mdp.undesired_contacts,
+    # #     weight=-1.0,
+    # #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
+    # # )
+    # # # -- optional penalties
+    # # flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
+    # # dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
 
 
 @configclass
@@ -415,16 +415,17 @@ class TerminationsCfg:
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
+    pass
 
-    goal_distance = CurrTerm(
-        func=mdp.modify_goal_distance_in_steps,
-        params={
-            "update_rate_steps": 100 * 48,
-            "min_path_length_range": (0.0, 2.0),
-            "max_path_length_range": (5.0, 15.0),
-            "step_range": (50 * 48, 1500 * 48),
-        },
-    )
+    # goal_distance = CurrTerm(
+    #     func=mdp.modify_goal_distance_in_steps,
+    #     params={
+    #         "update_rate_steps": 100 * 48,
+    #         "min_path_length_range": (0.0, 2.0),
+    #         "max_path_length_range": (5.0, 15.0),
+    #         "step_range": (50 * 48, 1500 * 48),
+    #     },
+    # )
 
 
 ##

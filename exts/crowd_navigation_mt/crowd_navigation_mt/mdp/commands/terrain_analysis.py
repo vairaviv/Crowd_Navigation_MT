@@ -135,7 +135,11 @@ class TerrainAnalysis:
         if self._env.num_envs <= N:
             N = self._env.num_envs
 
-        if self._env.scene.cfg.terrain.terrain_type == "plane":
+        # TODO fix this that extract_n_closest_meshes works
+        if (
+            self._env.scene.cfg.terrain.terrain_type == "plane" or 
+            self._env.scene.cfg.terrain.terrain_type == "generator"
+            ):
             valid_points_bools = torch.ones(len(sample_point), dtype=torch.bool)
 
         else:   

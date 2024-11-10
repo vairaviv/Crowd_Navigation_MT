@@ -3,63 +3,90 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-from omni.isaac.lab.envs import ManagerBasedEnv, ManagerBasedRLEnv
-from omni.isaac.lab.managers import SceneEntityCfg
-from omni.isaac.lab.assets import RigidObject
+from collections.abc import Sequence
 
-from omni.isaac.lab.sensors import CameraCfg, ContactSensorCfg, RayCasterCfg, patterns, RayCaster
+from omni.isaac.lab.envs import ManagerBasedEnv, ManagerBasedRLEnv
+from omni.isaac.lab.managers import ManagerTermBase
+from omni.isaac.lab.sensors import RayCaster
 
 import crowd_navigation_mt.mdp as mdp  # noqa: F401, F403
+from .lidar_history_cfg import LidarHistoryTermCfg
 
 from omni.isaac.lab.utils import math as math_utils
-from ..actions import NavigationSE2Action
-from .observations import base_position
-
-if TYPE_CHECKING:
-    from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
 
 
-class LidarHistory:
-    def __init__(
-        self,
-        history_length: int = 1,
-        sensor_cfg: SceneEntityCfg = SceneEntityCfg("lidar"),
-        return_pose_history: bool = True,
-        decimation: int = 1,
-    ) -> None:
-        """Initialize the buffers for the history of observations.
+class LidarHistory(ManagerTermBase):
+    # def __init__(
+    #     self,
+    #     history_length: int = 1,
+    #     sensor_cfg: SceneEntityCfg = SceneEntityCfg("lidar"),
+    #     return_pose_history: bool = True,
+    #     decimation: int = 1,
+    # ) -> None:
+    #     """Initialize the buffers for the history of observations.
 
-        History from old to new: [old, ..., new]
+    #     History from old to new: [old, ..., new]
+
+    #     Args:
+    #         history_length: The length of the history.
+    #         sensor_cfg: The sensor configuration.
+    #         return_pose_history: Whether to return the history of poses.
+    #         decimation: The decimation factor for the history.
+    #     """
+    #     self.sensor_cfg = sensor_cfg
+    #     self.history_length = history_length * decimation
+    #     self.lidar_buffer = None
+    #     self.position_buffer = None
+    #     self.yaw_buffer = None
+    #     self.return_pose_history = return_pose_history
+    #     self.decimation = decimation
+    
+    def __init__(self, cfg: LidarHistoryTermCfg, env: ManagerBasedEnv):
+        """Initialize the lidar history term.
 
         Args:
-            history_length: The length of the history.
-            sensor_cfg: The sensor configuration.
-            return_pose_history: Whether to return the history of poses.
-            decimation: The decimation factor for the history.
+            cfg: The configuration object.
+            env: The environment instance.
         """
-        self.sensor_cfg = sensor_cfg
-        self.history_length = history_length * decimation
+
+        super().__init__(cfg, env)
+
+        self.cfg = cfg
+        
         self.lidar_buffer = None
         self.position_buffer = None
         self.yaw_buffer = None
-        self.return_pose_history = return_pose_history
-        self.decimation = decimation
 
-    def reset(self, env: ManagerBasedRLEnv, sensor: RayCaster):
-        """Reset the buffers for terminated episodes.
+        # TODO check wheter it is necessary to have them here or if they can me directly accessed through self.cfg....
+        self.history_length = self.cfg.history_length * self.cfg.decimation
+        self.return_pose_history = self.cfg.return_pose_history
+        self.decimation = self.cfg.decimation
+        self.sensor_cfg = self.cfg.sensor_cfg
+
+    def __call__(self, *args, **kwargs) -> torch.Any:
+
+        method_name = kwargs["kwargs"]["method"]
+
+        method = getattr(self, method_name, None)
+
+        if method is None or not callable(method):
+            raise ValueError(f"Method '{method_name}' not found in the class.")
+            
+        return method(*args)
+
+    def reset(self, env_ids: Sequence[int] | None = None): # , env: ManagerBasedRLEnv, sensor: RayCaster
+        """Resets the manager term and the buffers created for lidar history.
 
         Args:
-            env: The environment object.
+            env_ids: The environment ids. Defaults to None, in which case
+                all environments are considered.
         """
-        # Initialize & find terminated episodes
-        try:
-            terminated_mask = env.termination_manager.dones
-        except AttributeError:
-            terminated_mask = torch.ones((env.num_envs), dtype=int).to(env.device)
-            # terminated_mask = torch.arange(0, env.num_envs, dtype=int).to(env.device)
         # Initialize buffer if empty
         if self.lidar_buffer is None or self.position_buffer is None or self.yaw_buffer is None:
-            self.lidar_buffer = torch.zeros((env.num_envs, self.history_length, sensor.data.pos_w.shape[-1])).to(
+            # self.lidar_buffer = torch.zeros((env.num_envs, self.history_length, sensor.data.pos_w.shape[-1])).to(
+            #     env.device
+            # )
+            self.lidar_buffer = torch.zeros((env.num_envs, self.history_length, sensor.data.distances.shape[-1])).to(
                 env.device
             )
             self.position_buffer = torch.zeros((env.num_envs, self.history_length + 1, 3)).to(env.device)
@@ -70,6 +97,29 @@ class LidarHistory:
         self.yaw_buffer[terminated_mask, :] = 0.0
 
         # return torch.nonzero(terminated_mask).flatten()
+
+        # # Initialize & find terminated episodes
+        # try:
+        #     terminated_mask = env.termination_manager.dones
+        # except AttributeError:
+        #     terminated_mask = torch.ones((env.num_envs), dtype=int).to(env.device)
+        #     # terminated_mask = torch.arange(0, env.num_envs, dtype=int).to(env.device)
+        # # Initialize buffer if empty
+        # if self.lidar_buffer is None or self.position_buffer is None or self.yaw_buffer is None:
+        #     # self.lidar_buffer = torch.zeros((env.num_envs, self.history_length, sensor.data.pos_w.shape[-1])).to(
+        #     #     env.device
+        #     # )
+        #     self.lidar_buffer = torch.zeros((env.num_envs, self.history_length, sensor.data.distances.shape[-1])).to(
+        #         env.device
+        #     )
+        #     self.position_buffer = torch.zeros((env.num_envs, self.history_length + 1, 3)).to(env.device)
+        #     self.yaw_buffer = torch.zeros((env.num_envs, self.history_length + 1)).to(env.device)
+        # # Reset buffer for terminated episodes
+        # self.lidar_buffer[terminated_mask, :, :] = 0.0
+        # self.position_buffer[terminated_mask, :, :] = 0.0
+        # self.yaw_buffer[terminated_mask, :] = 0.0
+
+        # # return torch.nonzero(terminated_mask).flatten()
         return terminated_mask
 
     def get_history(self, env: ManagerBasedRLEnv):

@@ -206,6 +206,7 @@ class RobotGoalCommand(CommandTerm):
     """Command generator for generating pose commands for the robot."""
 
     cfg: RobotGoalCommandCfg
+    rewards: dict = dict()
 
     def __init__(self, cfg: RobotGoalCommandCfg, env: ManagerBasedRLEnv):
         """Initialize the command generator class.
@@ -254,6 +255,9 @@ class RobotGoalCommand(CommandTerm):
         # self.metrics["y_pos"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["success_rate"] = torch.zeros(self.num_envs, device=self.device)
         self.success_rate_buffer = torch.zeros(self.num_envs, 10, device=self.device)
+        
+        # -- rewards
+        self.rewards["goal_heading"] = torch.zeros(self.num_envs, device=self.device)
 
         # -- environment
         self.env = env
@@ -271,7 +275,7 @@ class RobotGoalCommand(CommandTerm):
 
         # for plotting the commands 
         # TODO get the terrain limits from env
-        self.visualize_plot = True
+        self.visualize_plot = False
         terrain_x_lim = (-10, 10)
         terrain_y_lim = (-10, 10)
         self.plot = RobotGoalCommandPlot(terrain_x_lim, terrain_y_lim)

@@ -119,7 +119,6 @@ class ObservationHistory(ManagerTermBase):
     #         # Reset buffer for terminated episodes
     #         self.buffers[key][terminated_mask, :, :] = 0.0
 
-
     def get_history_of_actions(self, env: ManagerBasedRLEnv):
         """Get the history of actions.
 

@@ -134,6 +134,35 @@ def goal_closeness(
     rel_dist = distance_goal / max_dist
     return 1 - rel_dist
 
+def goal_heading(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    threshold: float = 0.5,
+    command_name: str = "robot_goal",
+):
+    """Reward the agent for following the direction of the waypoints using Cosine Similarity.
+
+    Args:
+        env: The learning environment.
+        asset_cfg: The name of the robot asset.
+        threshold: The distance threshold to the goal.
+        command_name: The name of the goal command
+
+    Returns:
+        Dense reward [-1, +1] based on the cosine similarity between the heading vector and the displacement vector.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    goal_cmd_geneator: RobotGoalCommand = env.command_manager._terms[command_name]
+    # compute the reward
+    goal = goal_cmd_geneator.pos_command_b
+    heading_error = torch.atan2(goal[:, 1], goal[:, 0])  # [-pi, +pi], in robot frame
+    # based on cosine similarity (+1, -1) and max episode reward 1
+    heading_reward = torch.cos(heading_error) / env.max_episode_length  
+    # check if goal reached
+    distance_goal = torch.norm(asset.data.root_pos_w[:, :2] - goal_cmd_geneator.pos_command_w[:, :2], dim=1, p=2)
+    reward = torch.where(distance_goal < threshold, torch.ones_like(distance_goal), heading_reward)
+    return reward
+
 
 def obstacle_distance(
     env: ManagerBasedRLEnv,
@@ -509,3 +538,6 @@ def undesired_wheel_contacts(env: ManagerBasedRLEnv, threshold: float, sensor_cf
     is_contact = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids, :2], dim=-1), dim=1)[0] > threshold
     # sum over contacts for each environment
     return torch.sum(is_contact, dim=1)
+
+
+

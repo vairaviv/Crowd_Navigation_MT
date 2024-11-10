@@ -61,8 +61,8 @@ ISAAC_GYM_JOINT_NAMES = [
 ]
 
 # MDP function specific parameters
-DISTANCE_THRESHOLD = 0.5
-SPEED_THRESHOLD = 0.5
+DISTANCE_THRESHOLD = 1.0
+SPEED_THRESHOLD = 1.5
 
 
 # OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=20)
@@ -288,7 +288,7 @@ class ObservationsCfg:
         termination_signal = ObsTerm(func=mdp.metrics_termination_signal)
         dones_signal = ObsTerm(func=mdp.metrics_dones_signal)
         goal_reached = ObsTerm(
-            func=mdp.metrics_goal_reached, params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": 1.2}
+            func=mdp.metrics_goal_reached, params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD}
         )  # take out if we do not care about speed
         undesired_contacts = ObsTerm(
             func=mdp.metrics_undesired_contacts,
@@ -296,12 +296,12 @@ class ObservationsCfg:
         )
         episode_length = ObsTerm(func=mdp.metrics_episode_length)
 
-        # For Computing Rewards
-        robot_position_history = ObservationHistoryTermCfg(
-            func=mdp.ObservationHistory,
-            params={"kwargs" : {"method": "get_history_of_positions"}},
-            history_length_actions=1,
-            history_length_positions=10) # ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env), clip=None)
+        # # For Computing Rewards
+        # robot_position_history = ObservationHistoryTermCfg(
+        #     func=mdp.ObservationHistory,
+        #     params={"kwargs" : {"method": "get_history_of_positions"}},
+        #     history_length_actions=1,
+        #     history_length_positions=10) # ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env), clip=None)
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -381,7 +381,7 @@ class RewardsCfg:
     goal_reached = RewTerm(
         func=mdp.goal_reached,  # reward is high to compensate for reset penalty
         weight=500.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
-        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": 0.1},
+        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD},
     )
     goal_progress = RewTerm(
         func=mdp.goal_progress,
@@ -393,7 +393,14 @@ class RewardsCfg:
         params={"threshold": 0.5},
     )
 
-    # # -- penalties
+    # -- mixed reward
+
+    goal_heading = RewTerm(
+        func=mdp.goal_heading,
+        weight=1.0,
+    )
+
+    # -- penalties
     # lateral_movement = RewTerm(
     #     func=mdp.lateral_movement,
     #     weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
@@ -406,9 +413,9 @@ class RewardsCfg:
     #     func=mdp.is_terminated,
     #     weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
     # )
-    # action_rate_l2 = RewTerm(
-    #     func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    # )
+    action_rate_l2 = RewTerm(
+        func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    )
 
 
 @configclass
@@ -427,13 +434,14 @@ class TerminationsCfg:
 
     goal_reached = DoneTerm(
         func=mdp.at_goal,  # reward is high to compensate for reset penalty
-        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": 2.5},
+        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD},
     )
 
 
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
+    pass
 
     goal_distance = CurrTerm(
         func=mdp.modify_goal_distance_relative_steps,
