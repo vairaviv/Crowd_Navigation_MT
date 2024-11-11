@@ -1,3 +1,6 @@
 [submodule "isaac-nav-suite"]
 	path = isaac-nav-suite
 	url = git@github.com:leggedrobotics/isaac-nav-suite.git
+[submodule "rsl_rl"]
+	path = rsl_rl
+	url = https://github.com/vairaviv/rsl_rl.git
