@@ -41,7 +41,7 @@ class LidarHistory(ManagerTermBase):
     #     self.return_pose_history = return_pose_history
     #     self.decimation = decimation
     
-    def __init__(self, cfg: LidarHistoryTermCfg, env: ManagerBasedEnv):
+    def __init__(self, cfg: LidarHistoryTermCfg, env: ManagerBasedRLEnv):
         """Initialize the lidar history term.
 
         Args:
@@ -51,17 +51,18 @@ class LidarHistory(ManagerTermBase):
 
         super().__init__(cfg, env)
 
-        self.cfg = cfg
+        self._cfg = cfg
+        self._env = env
         
         self.lidar_buffer = None
         self.position_buffer = None
         self.yaw_buffer = None
 
         # TODO check wheter it is necessary to have them here or if they can me directly accessed through self.cfg....
-        self.history_length = self.cfg.history_length * self.cfg.decimation
-        self.return_pose_history = self.cfg.return_pose_history
-        self.decimation = self.cfg.decimation
-        self.sensor_cfg = self.cfg.sensor_cfg
+        self.history_length = self._cfg.history_length * self._cfg.decimation
+        self.return_pose_history = self._cfg.return_pose_history
+        self.decimation = self._cfg.decimation
+        self.sensor_cfg = self._cfg.sensor_cfg
 
     def __call__(self, *args, **kwargs) -> torch.Any:
 
@@ -86,15 +87,24 @@ class LidarHistory(ManagerTermBase):
             # self.lidar_buffer = torch.zeros((env.num_envs, self.history_length, sensor.data.pos_w.shape[-1])).to(
             #     env.device
             # )
-            self.lidar_buffer = torch.zeros((env.num_envs, self.history_length, sensor.data.distances.shape[-1])).to(
-                env.device
+            lidar = self._env.scene.sensors[self.sensor_cfg.name]
+            self.lidar_buffer = torch.zeros((self.num_envs, self.history_length, lidar.data.distances.shape[-1])).to(
+                self.device
             )
-            self.position_buffer = torch.zeros((env.num_envs, self.history_length + 1, 3)).to(env.device)
-            self.yaw_buffer = torch.zeros((env.num_envs, self.history_length + 1)).to(env.device)
+            self.position_buffer = torch.zeros((self.num_envs, self.history_length + 1, 3)).to(self.device)
+            self.yaw_buffer = torch.zeros((self.num_envs, self.history_length + 1)).to(self.device)
+        
+        if env_ids is None:
+            try:
+                env_ids = torch.nonzero(self._env.termination_manager.dones).flatten()
+            except AttributeError:
+                # env_ids = torch.ones((self.num_envs), dtype=torch.bool).to(self.device)
+                env_ids = torch.arange(0, self.num_envs, dtype=int).to(self.device)
+
         # Reset buffer for terminated episodes
-        self.lidar_buffer[terminated_mask, :, :] = 0.0
-        self.position_buffer[terminated_mask, :, :] = 0.0
-        self.yaw_buffer[terminated_mask, :] = 0.0
+        self.lidar_buffer[env_ids, :, :] = 0.0
+        self.position_buffer[env_ids, :, :] = 0.0
+        self.yaw_buffer[env_ids, :] = 0.0
 
         # return torch.nonzero(terminated_mask).flatten()
 
@@ -120,7 +130,8 @@ class LidarHistory(ManagerTermBase):
         # self.yaw_buffer[terminated_mask, :] = 0.0
 
         # # return torch.nonzero(terminated_mask).flatten()
-        return terminated_mask
+        # return torch.nonzero(env_ids).flatten()
+        return env_ids
 
     def get_history(self, env: ManagerBasedRLEnv):
         """Get the history of actions.
@@ -130,7 +141,7 @@ class LidarHistory(ManagerTermBase):
         """
         sensor: RayCaster = env.scene.sensors[self.sensor_cfg.name]
         # Reset buffer for terminated episodes
-        reset_idx = self.reset(env, sensor)
+        reset_idx = self.reset()
 
         # update buffers
         # Return updates buffer
@@ -141,9 +152,13 @@ class LidarHistory(ManagerTermBase):
         self.yaw_buffer[:, -1] = math_utils.axis_angle_from_quat(math_utils.yaw_quat(sensor.data.quat_w))[
             :, 2
         ]  # sensor yaw
+
+        
         distances = sensor.data.distances
         # distances = shift_point_indices_by_heading(distances, self.yaw_buffer[:, 0])
-        distances[torch.isinf(distances)] = 0.0
+        # before all the infinite sensor measurements were set to 0.0, why?
+        # distances[torch.isinf(distances)] = 0.0
+        distances[torch.isinf(distances)] = sensor.cfg.max_distance
         self.lidar_buffer[:, -1, :] = distances  # lidar distances
         self.position_buffer[:, -1, :] = sensor.data.pos_w  # sensor positions world frame
 
@@ -171,6 +186,8 @@ class LidarHistory(ManagerTermBase):
                 self.lidar_buffer[jumped, 1:, :] = 0.0
                 history_pose[jumped] = 0.0
 
+        # adds additional 3 observations, which is the difference in position of the robot from the previous to the 
+        # current step
         if self.return_pose_history:
             lidar_buffer_flattened = self.lidar_buffer[:, :: self.decimation, :].reshape(self.lidar_buffer.size(0), -1)
             history_pose_flattened = history_pose[:, 1 :: self.decimation, :].reshape(history_pose.size(0), -1)

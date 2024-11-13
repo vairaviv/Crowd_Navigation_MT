@@ -67,23 +67,23 @@ class TeacherPolicyObsCfg(ObsGroup):
     cpg_state = ObsTerm(func=mdp.cgp_state)
 
     # privileged sensor observations
-    lidar_distances = ObsTerm(
-        func=mdp.lidar_obs_dist,
-        params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
-        # noise=Unoise(n_min=-0.1, n_max=0.1),
-        clip=(-100.0, 100.0),
-    )
+    # lidar_distances = ObsTerm(
+    #     func=mdp.lidar_obs_dist,
+    #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
+    #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+    #     clip=(-100.0, 100.0),
+    # )
 
     # TODO currently the policy doesnt observe the lidar history
 
-    # lidar_distances_history = LidarHistoryTermCfg(
-    #     func=mdp.LidarHistory,
-    #     params={"kwargs" : {"method": "get_history"}},
-    #     history_length=1, 
-    #     decimation=1, 
-    #     sensor_cfg=SceneEntityCfg("lidar"), 
-    #     return_pose_history=True
-    # )
+    lidar_distances_history = LidarHistoryTermCfg(
+        func=mdp.LidarHistory,
+        params={"kwargs" : {"method": "get_history"}},
+        history_length=1, 
+        decimation=1, 
+        sensor_cfg=SceneEntityCfg("lidar"), 
+        return_pose_history=True
+    )
 
     # lidar_distances_history = ObsTerm(
     #     func=lambda env: LIDAR_HISTORY.get_history(env),
