@@ -153,13 +153,28 @@ class LidarHistory(ManagerTermBase):
             :, 2
         ]  # sensor yaw
 
-        
+        # distances = torch.linalg.vector_norm(sensor.data.ray_hits_w, dim=-1)
         distances = sensor.data.distances
         # distances = shift_point_indices_by_heading(distances, self.yaw_buffer[:, 0])
         # before all the infinite sensor measurements were set to 0.0, why?
-        # distances[torch.isinf(distances)] = 0.0
-        distances[torch.isinf(distances)] = sensor.cfg.max_distance
+        distances[torch.isinf(distances)] = 0.0
+        # distances[torch.isinf(distances)] = sensor.cfg.max_distance
+
         self.lidar_buffer[:, -1, :] = distances  # lidar distances
+
+        # # TODO this needs to happen in the Raycaster and not her in the history
+        # sensor._data.distances = distances
+
+        # # this is to handle the case where distances has a different shape, as only a few environments are reset,
+        # # due to temination, maybe there is a way to handle this better check TODO
+        # self.lidar_buffer_cloned = self.lidar_buffer.clone().detach()
+        # if reset_idx is not None and len(reset_idx) > 0:
+        #     self.lidar_buffer_cloned[reset_idx, -1, :] = distances
+        # else:
+        #     self.lidar_buffer_cloned[:, -1, :] = distances
+
+        # self.lidar_buffer = self.lidar_buffer_cloned
+
         self.position_buffer[:, -1, :] = sensor.data.pos_w  # sensor positions world frame
 
         # reset relative positions and yaw for terminated episodes

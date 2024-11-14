@@ -25,7 +25,9 @@ for task, task_name in zip(tasks, task_names):
     # Static Obstacles Terrain
     # ./isaaclab.sh -p ./crowd_navigation_mt/scripts/rsl_rl/train.py --task Isaac-CrowdNavigation-Teacher-StatObs-Anymal-D-v0 --run_name "statobs_ppo_base" --logger wandb --num_envs 2048 --log_project_name MT_Crowd_Navigation_StatObs --headless
     # Flat Terrain
-    # ./isaaclab.sh -p ./crowd_navigation_mt/scripts/rsl_rl/train.py --task Isaac-CrowdNavigation-Teacher-Flat-Anymal-D-v0 --run_name "flat_ppo_base_goal_heading_clamped" --logger wandb --num_envs 2048 --log_project_name MT_Crowd_Navigation_Flat --headless
+    # ./isaaclab.sh -p ./crowd_navigation_mt/scripts/rsl_rl/train.py --task Isaac-CrowdNavigation-Teacher-Flat-Beta-Anymal-D-v0 --run_name "flat_ppo_base_beta" --logger wandb --num_envs 2048 --log_project_name MT_Crowd_Navigation_Flat --headless
+    # Static Obstacles PPO CONV No GRU
+    # ./isaaclab.sh -p ./crowd_navigation_mt/scripts/rsl_rl/train.py --task Isaac-CrowdNavigation-Teacher-StatObs-Conv_NoGru-Anymal-D-v0 --run_name "statobs_ppo_conv_no_gru" --logger wandb --num_envs 2048 --log_project_name MT_Crowd_Navigation_StatObs_Conv_NoGru --headless
     subprocess.run(command, shell=True)
 
 """
@@ -33,14 +35,17 @@ In order to push the current code to the Euler Cluster and run a job do:
 
 in shell: ./docker/cluster/cluster_interface.sh job --task {Task_Name} --run_name {for_folder} --num_envs {amount_of_envs} --logger {wandb/tensorboard} --log_project_name {project_folder_wandb} --headless
 
-
+example for static obstacle terrain with ppo and ActorCriticBeta Module
+./docker/cluster/cluster_interface.sh job --task Isaac-CrowdNavigation-Teacher-StatObs-PPO_Beta-Anymal-D-v0 --run_name --num_envs 2048 --logger wandb --log_project_name MT_Crowd_Navigation_StatObs_Beta --headless
 
 To copy the logs something, maybe specify which files exactly, to not copy the whole directory:
 
 scp -r vairaviv@euler.ethz.ch:/cluster/home/vairaviv/isaaclab/logs/rsl_rl/crowd_navigation/{log_file_directory} ./logs/{run_name}
 
 
-To copy files from local to docker:
+To copy log folder from cluster to docker:
 
+cd path_to_IsaacLab
+python ./crowd_navigation_mt/exts/crowd_navigation_mt/crowd_navigation_mt/scripts/copy_from_cluster_to_docker.py --directory_name "name_of_run_in_log_directory"
 
 """

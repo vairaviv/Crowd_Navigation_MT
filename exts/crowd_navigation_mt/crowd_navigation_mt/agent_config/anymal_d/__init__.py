@@ -55,7 +55,7 @@ gym.register(
 
 # static obstacles PPO Beta 
 gym.register(
-    id="Isaac-CrowdNavigation-Teacher-StatObs-PPO_Beta-Anymal-D-v0",
+    id="Isaac-CrowdNavigation-Teacher-StatObs-Beta-Anymal-D-v0",
     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
@@ -71,6 +71,17 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherNoGruConvCfg,
+    },
+)
+
+# dynamic obstacles PPO CONV BetaCompressed NoGru
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-DynObs-Conv_NoGru-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynEnvCfg,
         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherNoGruConvCfg,
     },
 )

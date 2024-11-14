@@ -61,8 +61,8 @@ ISAAC_GYM_JOINT_NAMES = [
 ]
 
 # MDP function specific parameters
-DISTANCE_THRESHOLD = 1.0
-SPEED_THRESHOLD = 1.5
+DISTANCE_THRESHOLD = 0.5
+SPEED_THRESHOLD = 2.5
 
 
 # OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=20)
@@ -448,9 +448,9 @@ class CurriculumCfg:
         params={
             "command_name": "robot_goal",
             "start_size": 0.5,
-            "end_size": 2,
-            "start_step": 20_000,
-            "num_steps": 40_000,
+            "end_size": 5,
+            "start_step": 2_000,
+            "num_steps": 10_000,
         },
     )
 

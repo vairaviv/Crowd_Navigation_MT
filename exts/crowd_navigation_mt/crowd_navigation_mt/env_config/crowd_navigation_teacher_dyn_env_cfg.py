@@ -61,13 +61,13 @@ class TeacherPolicyObsCfg(ObsGroup):
 
     cpg_state = ObsTerm(func=mdp.cgp_state)
 
-    # privileged sensor observations
-    lidar_distances = ObsTerm(
-        func=mdp.lidar_obs_dist,
-        params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
-        # noise=Unoise(n_min=-0.1, n_max=0.1),
-        clip=(-100.0, 100.0),
-    )
+    # # privileged sensor observations
+    # lidar_distances = ObsTerm(
+    #     func=mdp.lidar_obs_dist,
+    #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
+    #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+    #     clip=(-100.0, 100.0),
+    # )
 
     # lidar_mesh_velocities = ObsTerm(
     #     func=mdp.lidar_obs_vel_b_static_2d,
@@ -110,31 +110,31 @@ class TeacherPolicyObsCfg(ObsGroup):
 class TeacherCurriculumCfg:
     """Curriculum terms for the MDP."""
 
-    obstacle_velocity = CurrTerm(
-        func=mdp.modify_obstacle_velocity,
-        params={
-            "action_name": "obstacle_bot_positions",
-            "start_step": 0,
-            "start_velocity": 0.5,
-            "end_velocity": 0.5,
-            "num_steps": 20_000,
-        },
-    )
+    # obstacle_velocity = CurrTerm(
+    #     func=mdp.modify_obstacle_velocity,
+    #     params={
+    #         "action_name": "obstacle_bot_positions",
+    #         "start_step": 0,
+    #         "start_velocity": 0.5,
+    #         "end_velocity": 0.5,
+    #         "num_steps": 20_000,
+    #     },
+    # )
 
-    ########################################################
-    # Took out as goal commands are uniform2dgoalcommands atm
-    ########################################################
+    # ########################################################
+    # # Took out as goal commands are uniform2dgoalcommands atm
+    # ########################################################
 
-    goal_distance = CurrTerm(
-        func=mdp.modify_goal_distance_relative_steps,
-        params={
-            "command_name": "robot_goal",
-            "start_size": 4,
-            "end_size": 4,
-            "start_step": 0,
-            "num_steps": 100_000,
-        },
-    )
+    # goal_distance = CurrTerm(
+    #     func=mdp.modify_goal_distance_relative_steps,
+    #     params={
+    #         "command_name": "robot_goal",
+    #         "start_size": 4,
+    #         "end_size": 4,
+    #         "start_step": 0,
+    #         "num_steps": 100_000,
+    #     },
+    # )
 
 
 @configclass
@@ -197,22 +197,22 @@ class TeacherRewardsCfg:
     #     params={"threshold": 0.5},
     # )
 
-    # -- penalties
+    # # -- penalties
 
-    lateral_movement = RewTerm(
-        func=mdp.lateral_movement,
-        weight=-0.01,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
+    # lateral_movement = RewTerm(
+    #     func=mdp.lateral_movement,
+    #     weight=-0.01,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
 
-    backward_movement = RewTerm(
-        func=mdp.backwards_movement,
-        weight=-0.01,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
+    # backward_movement = RewTerm(
+    #     func=mdp.backwards_movement,
+    #     weight=-0.01,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
 
-    episode_termination = RewTerm(
-        func=mdp.is_terminated,
-        weight=-500.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
-    )
+    # episode_termination = RewTerm(
+    #     func=mdp.is_terminated,
+    #     weight=-500.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
+    # )
 
     action_rate_l2 = RewTerm(
         func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
@@ -250,20 +250,20 @@ class TeacherRewardsCfg:
     # )
     # TODO add penality for obstacles being in front of the robot
 
-    # penalty for colliding with obstacles
-    undesired_contacts = RewTerm(
-        func=mdp.undesired_contacts,
-        weight=-200.0,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*THIGH", ".*HIP", ".*SHANK", "base"]),
-            "threshold": 0.5,
-        },
-    )
+    # # penalty for colliding with obstacles
+    # undesired_contacts = RewTerm(
+    #     func=mdp.undesired_contacts,
+    #     weight=-200.0,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*THIGH", ".*HIP", ".*SHANK", "base"]),
+    #         "threshold": 0.5,
+    #     },
+    # )
 
-    # reward for being alive
-    is_alive_reward = RewTerm(
-        func=mdp.is_alive, weight=+1e-1  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
-    )
+    # # reward for being alive
+    # is_alive_reward = RewTerm(
+    #     func=mdp.is_alive, weight=+1e-1  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
+    # )
 
 
 class CrowdNavigationTeacherDynEnvCfg(CrowdNavigationEnvCfg):
@@ -320,7 +320,7 @@ class CrowdNavigationTeacherDynEnvCfg(CrowdNavigationEnvCfg):
         self.terminations: TeacherTerminationsCfg = TeacherTerminationsCfg()
 
         # change max duration
-        self.episode_length_s = 60
+        self.episode_length_s = 120
 
         # change env spacing as curriculum
         self.scene.env_spacing = 8.0
