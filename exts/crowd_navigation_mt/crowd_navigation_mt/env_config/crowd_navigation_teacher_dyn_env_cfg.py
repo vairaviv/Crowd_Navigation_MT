@@ -78,12 +78,12 @@ class TeacherPolicyObsCfg(ObsGroup):
     lidar_distances_history = LidarHistoryTermCfg(
         func=mdp.LidarHistory,
         params={"kwargs" : {"method": "get_history"}},
-        history_length=1, 
+        history_length=5, 
         decimation=1, 
         sensor_cfg=SceneEntityCfg("lidar"), 
-        return_pose_history=True
+        return_pose_history=True,
     )
-
+        
     # lidar_distances_history = ObsTerm(
     #     func=lambda env: LIDAR_HISTORY.get_history(env),
     #     clip=(-100.0, 100.0),

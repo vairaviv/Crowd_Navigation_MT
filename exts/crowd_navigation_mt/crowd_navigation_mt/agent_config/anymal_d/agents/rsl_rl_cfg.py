@@ -27,6 +27,14 @@ if TYPE_CHECKING:
         ActorCriticBetaRecurrentLidar,
     )
 
+NON_LIDAR_DIM = 2 + 8  # commanded pos, proprioception
+HISTORY_LENGTH_STAT = 5
+HISTORY_LENGTH_DYN = 10
+DIM_LIDAR = 360
+LIDAR_EXTRA_DIM = 3 * HISTORY_LENGTH_STAT  # history length 5
+# 875631
+
+
 
 # basic compress mlp
 @configclass
@@ -103,14 +111,6 @@ class PPOBaseCfg(RslRlPpoActorCriticCfg):
         desired_kl=0.01,
         max_grad_norm=1.0,
     )
-
-NON_LIDAR_DIM = 2 + 8  # commanded pos, proprioception
-HISTORY_LENGTH_STAT = 1
-HISTORY_LENGTH_DYN = 10
-DIM_LIDAR = 360
-LIDAR_EXTRA_DIM = 3  # history length 5
-# 875631
-
 
 # compress with history
 @configclass
@@ -281,13 +281,6 @@ class PPOBaseBetaCfg(RslRlOnPolicyRunnerCfg):
 # PPO - CrowdNavigation Configurations PLR
 ######################################################################
 
-NON_LIDAR_DIM = 2 + 8  # commanded pos, proprioception
-HISTORY_LENGTH_STAT = 1
-HISTORY_LENGTH_DYN = 10
-DIM_LIDAR = 360
-LIDAR_EXTRA_DIM = 3  # history length 5
-# 875631
-
 # gru with lidar cnn, multi channel lidar input
 @configclass
 class PPOBaseBetaLidarConvCfg(RslRlOnPolicyRunnerCfg):
@@ -300,7 +293,7 @@ class PPOBaseBetaLidarConvCfg(RslRlOnPolicyRunnerCfg):
     policy: RslRlPpoActorCriticBetaRecurrentLidarCnnCfg = RslRlPpoActorCriticBetaRecurrentLidarCnnCfg(
         non_lidar_dim=NON_LIDAR_DIM,
         lidar_dim=DIM_LIDAR,
-        num_lidar_channels=1,
+        num_lidar_channels=HISTORY_LENGTH_STAT,
         lidar_extra_dim=LIDAR_EXTRA_DIM,
         non_lidar_layer_dims=[64],
         lidar_compress_conv_layer_dims=[8, 16, 16],

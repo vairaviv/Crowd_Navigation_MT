@@ -40,12 +40,12 @@ example for static obstacle terrain with ppo and ActorCriticBeta Module
 
 To copy the logs something, maybe specify which files exactly, to not copy the whole directory:
 
-scp -r vairaviv@euler.ethz.ch:/cluster/home/vairaviv/isaaclab/logs/rsl_rl/crowd_navigation/{log_file_directory} ./logs/{run_name}
+scp -r vairaviv@euler.ethz.ch:/cluster/home/vairaviv/isaaclab/logs/rsl_rl/crowd_navigation/{log_file_directory} ./logs/cluster/{run_name}
 
 
 To copy log folder from cluster to docker:
 
 cd path_to_IsaacLab
-python ./crowd_navigation_mt/exts/crowd_navigation_mt/crowd_navigation_mt/scripts/copy_from_cluster_to_docker.py --directory_name "name_of_run_in_log_directory"
+python ./crowd_navigation_mt/scripts/cluster/copy_from_cluster_to_docker.py --directory_name "name_of_run_in_log_directory"
 
 """
