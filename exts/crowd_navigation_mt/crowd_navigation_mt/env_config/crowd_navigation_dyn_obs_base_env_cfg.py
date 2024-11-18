@@ -169,19 +169,6 @@ class FlatWallObsScene(InteractiveSceneCfg):
 
     lidar : RayCasterCfg = MISSING
 
-
-    # lidar: RayCasterCfg = RayCasterCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/base",
-    #     mesh_prim_paths=["/World/ground"],
-    #     pattern_cfg=patterns.LidarPatternCfg(
-    #         channels=1,
-    #         vertical_fov_range=(0.0, 0.0),
-    #         horizontal_fov_range=(0, 360),
-    #         horizontal_res=1,
-    #     ),
-
-    # )
-
     light = AssetBaseCfg(
         prim_path="/World/skyLight",
         spawn=sim_utils.DomeLightCfg(color=(0.13, 0.13, 0.13), intensity=10000.0),
@@ -227,17 +214,6 @@ class CommandsCfg:
         sample_local=True,
     )
 
-    # robot_goal = mdp.Uniform2dCoordCfg(
-    #     asset_name="robot",
-    #     resampling_time_range=(500.0, 2000.0),
-    #     ranges=mdp.Uniform2dCoordCfg.Ranges(
-    #         pos_x=(-10.0, 10.0),
-    #         pos_y=(-10.0, 10.0),
-    #     ),
-    #     # use_env_spacing=True,
-    #     sample_local=True,
-    # )
-
     robot_goal = mdp.RobotGoalCommandCfg(
         # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
         asset_name="robot",
@@ -250,18 +226,6 @@ class CommandsCfg:
         # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
         use_grid_spacing=True,
     )
-
-    # # target pos for the robot. the agent has to learn to move to this position
-    # robot_goal = mdp.RobotGoalCommandCfg(
-    #     # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
-    #     asset_name="robot",
-    #     resampling_time_range=(100000.0, 100000.0),  # resample only on reset
-    #     debug_vis=True,
-    #     radius=5.0,
-    #     terrain_analysis=mdp.TerrainAnalysisCfg(
-    #         raycaster_sensor="lidar",
-    #     ),
-    # )
 
 
 @configclass

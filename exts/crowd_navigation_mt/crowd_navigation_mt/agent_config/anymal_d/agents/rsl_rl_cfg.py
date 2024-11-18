@@ -346,6 +346,14 @@ class PPOTeacherBetaCfg(PPOBaseBetaCfg):
         self.policy.actor_hidden_dims = [64, 128, 128]
         self.policy.critic_hidden_dims = [64, 128, 128]
 
+@configclass
+class PPOTeacherDynBetaCfg(PPOBaseBetaCfg):
+    run_name = "PPO_Beta"
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.max_iterations = 10000
+
 
 @configclass
 class PPOTeacherCfg(PPOBaseBetaCompressCfg):

@@ -135,13 +135,20 @@ class StatObsScene(InteractiveSceneCfg):
         max_distance=100.0,
     )
 
-    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
+    contact_forces = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/.*", 
+        history_length=3, 
+        track_air_time=True
+    )
 
     lidar: RayCasterCfg = MISSING
 
     light = AssetBaseCfg(
         prim_path="/World/skyLight",
-        spawn=sim_utils.DomeLightCfg(color=(0.13, 0.13, 0.13), intensity=10000.0),
+        spawn=sim_utils.DomeLightCfg(
+            color=(0.13, 0.13, 0.13), 
+            intensity=10000.0
+        ),
     )
 
 

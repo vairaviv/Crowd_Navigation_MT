@@ -78,7 +78,7 @@ class TeacherPolicyObsCfg(ObsGroup):
     lidar_distances_history = LidarHistoryTermCfg(
         func=mdp.LidarHistory,
         params={"kwargs" : {"method": "get_history"}},
-        history_length=5, 
+        history_length=1, 
         decimation=1, 
         sensor_cfg=SceneEntityCfg("lidar"), 
         return_pose_history=True,
@@ -141,7 +141,7 @@ class TeacherCurriculumCfg:
 class TeacherTerminationsCfg:
     """Termination terms for the MDP."""
 
-    # time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # base_contact = DoneTerm(
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
@@ -154,14 +154,20 @@ class TeacherTerminationsCfg:
     illegal_contact = DoneTerm(
         func=mdp.illegal_contact,
         params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=["base"]),  # , ".*THIGH"
+            "sensor_cfg": SceneEntityCfg(
+                name="contact_forces",
+                body_names=["base", ".*THIGH", ".*HIP", ".*SHANK"]  # "base", ".*THIGH", ".*HIP", ".*SHANK",
+            ),
             "threshold": 1.0,
         },
     )
 
     goal_reached = DoneTerm(
         func=mdp.at_goal,  # reward is high to compensate for reset penalty
-        params={"distance_threshold": 0.5, "speed_threshold": 2.5},
+        params={
+            "distance_threshold": 0.5,
+            "speed_threshold": 2.5
+        },
     )
 
 
@@ -172,18 +178,18 @@ class TeacherRewardsCfg:
     # -- tasks
     goal_reached = RewTerm(
         func=mdp.goal_reached,  # reward is high to compensate for reset penalty
-        weight=1000.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
+        weight=50.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
         params={"distance_threshold": 0.5, "speed_threshold": 2.5},
     )
 
     goal_progress = RewTerm(
         func=mdp.goal_progress,
-        weight=1,  # Dense Reward of [0.0, 0.025]  --> Max Episode Reward: 0.25
+        weight=2.0,  # Dense Reward of [0.0, 0.025]  --> Max Episode Reward: 0.25
     )
 
     goal_closeness = RewTerm(
         func=mdp.goal_closeness,
-        weight=1,  # Dense Reward of [0.0, 0.025]  --> Max Episode Reward: 0.25
+        weight=1.0,  # Dense Reward of [0.0, 0.025]  --> Max Episode Reward: 0.25
     )
 
     # stage_cleared = RewTerm(
@@ -215,7 +221,8 @@ class TeacherRewardsCfg:
     # )
 
     action_rate_l2 = RewTerm(
-        func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+        func=mdp.action_rate_l2, 
+        weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
 
     # took out because Observation can not handle history yet
@@ -234,13 +241,13 @@ class TeacherRewardsCfg:
     obstacle_in_front_narrow = RewTerm(
         func=mdp.obstacle_distance_in_front,
         weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 2, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 30},
+        params={"threshold": 2.0, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 30.0},
     )
 
     obstacle_in_front_wide = RewTerm(
         func=mdp.obstacle_distance_in_front,
         weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 1, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60},
+        params={"threshold": 1.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60.0},
     )
 
     # far_from_obstacle = RewTerm(
@@ -311,7 +318,7 @@ class CrowdNavigationTeacherDynEnvCfg(CrowdNavigationEnvCfg):
         self.commands.obstacle_target_pos.static = True
 
         # change goal command
-        self.commands.robot_goal.radius = 8.0
+        self.commands.robot_goal.radius = 3.0
 
         # add observation group:
         self.observations.policy = TeacherPolicyObsCfg()
