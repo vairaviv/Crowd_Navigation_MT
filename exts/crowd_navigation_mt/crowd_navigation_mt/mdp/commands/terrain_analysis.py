@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import copy
 import numpy as np
 import os
 import pickle
@@ -47,14 +46,9 @@ class TerrainAnalysis:
 
         # get the raycaster sensor that should be used to raycast against all the ground meshes
         if isinstance(self._env.scene.sensors[self.cfg.raycaster_sensor], RayCaster):
-            # self.terrain_analysis_raycaster : RayCaster = copy.deepcopy(self._env.scene.sensors[self.cfg.raycaster_sensor])
             self._raycaster: RayCaster = self._env.scene.sensors[self.cfg.raycaster_sensor]
         else:
             raise ValueError(f"Sensor {self.cfg.raycaster_sensor} is not a RayCaster sensor")
-
-        mesh_ids_wp_to_torch = torch.tensor(self._raycaster._mesh_ids_wp.numpy())
-        mesh_ids_wp_to_torch_repeated = mesh_ids_wp_to_torch.repeat(25, 1)  # Shape: [100, 5]
-        self.sample_point_mesh_ids_wp = wp.array(mesh_ids_wp_to_torch_repeated.numpy(), dtype=wp.uint64)
 
         # TODO make this work
         scan_2d_pattern = patterns.LidarPatternCfg(
@@ -63,9 +57,6 @@ class TerrainAnalysis:
             horizontal_fov_range=(0, 360),
             horizontal_res=20,
         )
-        # Added new to the function
-        self.scan_2d_ray_starts = patterns.lidar_pattern(scan_2d_pattern, env.device)[0]
-        # self.scan_2d_ray_starts = self.scan_2d_ray_starts.unsqueeze(0).repeat(self._env.num_envs, 1, 1)
         self.scan_2d_directions = patterns.lidar_pattern(scan_2d_pattern, env.device)[1]
 
         height_scan_pattern = patterns.GridPatternCfg(resolution=0.333, size=[1.5, 1.5])
@@ -85,7 +76,7 @@ class TerrainAnalysis:
         ray_starts = self.height_scan_starts.unsqueeze(0).repeat(len(spawn_2d), 1, 1) + init_points.repeat(
             1, len(self.height_scan_starts), 1
         )
-        
+
         # TODO add mesh_ids_wp
         z_positions = raycast_dynamic_meshes(
             ray_starts=ray_starts.to(torch.float32),
@@ -107,10 +98,7 @@ class TerrainAnalysis:
         return torch.mean(z_positions, dim=1) + self.cfg.robot_height
 
     def sample_spawn_2d(self, init_spawn_point: torch.Tensor, num_resamples: int = 100) -> torch.Tensor:
-        """given a spawn point, sample a valid spawn point around it.
-        
-        num_resamples % self._num_envs == 0, should be a multiple of num_envs otherwise it will in raycast_dynamic_meshes
-        """
+        """given a spawn point, sample a valid spawn point around it."""
 
         halton_sampler = qmc.Halton(d=2, scramble=True)
         sample_points = halton_sampler.random(num_resamples)
@@ -142,15 +130,15 @@ class TerrainAnalysis:
     def _point_valid(self, sample_point: torch.Tensor) -> bool:
         # raycast with the 2d lidar scan. we scan all n_samples at once (like multiple envs)
         # shapes of inputs are (n_samples, n_rays, 3)
-        
+        # TODO check if this even makes sense
         N = 16
-        if self._raycaster._mesh_ids_wp.shape[1] <= N:
-            N = self._raycaster._mesh_ids_wp.shape[1]+1
+        if self._env.num_envs <= N:
+            N = self._env.num_envs
 
         # TODO fix this that extract_n_closest_meshes works
         if (
-            self._env.scene.cfg.terrain.terrain_type == "plane" # or 
-            # self._env.scene.cfg.terrain.terrain_type == "generator"
+            self._env.scene.cfg.terrain.terrain_type == "plane" or 
+            self._env.scene.cfg.terrain.terrain_type == "generator"
             ):
             valid_points_bools = torch.ones(len(sample_point), dtype=torch.bool)
 
@@ -162,17 +150,12 @@ class TerrainAnalysis:
             mesh_orientations = (
                 self._raycaster._data.mesh_orientations_w[0][keep_indices].unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32)
             )
-            
-            
 
             scan_2d_dists = raycast_dynamic_meshes(
-                # ray_starts=sample_point.unsqueeze(1).repeat(1, len(self.scan_2d_directions), 1).to(torch.float32),
-                # ray_starts=self.scan_2d_ray_starts.unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32),
-                ray_starts=self.scan_2d_ray_starts.unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32),
+                ray_starts=sample_point.unsqueeze(1).repeat(1, len(self.scan_2d_directions), 1).to(torch.float32),
                 ray_directions=self.scan_2d_directions.unsqueeze(0).repeat(len(sample_point), 1, 1).to(torch.float32),
                 # meshes=np.tile(np.array(self._raycaster._meshes[0], dtype=wp.Mesh)[0], (len(sample_point), 1)),
-                mesh_ids_wp=self.sample_point_mesh_ids_wp, 
-                # mesh_ids_wp=self._raycaster._mesh_ids_wp, # (len(sample_point), self._raycaster._mesh_ids_wp.shape[1]),
+                mesh_ids_wp=self._raycaster._mesh_ids_wp,
                 # meshes=np.tile(np.array(closest_meshes_list, dtype=wp.Mesh), (len(sample_point), 1)),
                 mesh_positions_w=mesh_positions,
                 mesh_orientations_w=mesh_orientations,
@@ -187,8 +170,8 @@ class TerrainAnalysis:
             #     max_dist=1e6,
             # )
             # point is valid if all distances are greater than min_wall_dist
-            valid_points_bools = (scan_2d_dists > self.cfg.min_wall_dist).all(dim=1).to(device=self._env.device)
-        
+            valid_points_bools = (scan_2d_dists > self.cfg.min_wall_dist).all(dim=1)
+
         return valid_points_bools
 
     def _extract_n_closest_meshes(self, center_point: torch.tensor, N: int, mesh_ids_to_keep: list[int] = [0]):
@@ -196,7 +179,7 @@ class TerrainAnalysis:
         N -= len(mesh_ids_to_keep)
 
         # Convert mesh_ids_to_keep to a tensor and repeat it for each robot
-        mesh_ids_to_keep_: torch.Tensor = torch.tensor(mesh_ids_to_keep, device=self._env.device)
+        mesh_ids_to_keep_: torch.Tensor = torch.tensor(mesh_ids_to_keep, device=center_point.device)
 
         # Extract mesh positions and robot positions based on env_ids
         mesh_pos = self._raycaster._data.mesh_positions_w[0]  # w positions are the same in all envs
