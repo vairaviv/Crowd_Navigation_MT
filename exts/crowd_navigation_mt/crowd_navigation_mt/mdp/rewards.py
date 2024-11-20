@@ -96,14 +96,15 @@ def goal_reached(
     reward = torch.where(
         distance_goal < distance_threshold, torch.ones_like(distance_goal), torch.zeros_like(distance_goal)
     )
-
+    reward = torch.where(abs_velocity < speed_threshold, reward, torch.zeros_like(abs_velocity))
+    
+    
     env_ids = torch.nonzero(reward).flatten()
 
     # TODO check if it is done somewhere else
     # goal_cmd_geneator.increment_goal_distance(env_ids)
-    goal_cmd_geneator._resample_command(env_ids)
-
-    reward = torch.where(abs_velocity < speed_threshold, reward, torch.zeros_like(abs_velocity))
+    if env_ids.numel() > 0:
+        goal_cmd_geneator._resample_command(env_ids)
 
     return reward
 
@@ -131,8 +132,15 @@ def goal_closeness(
     # compute the reward
     distance_goal = torch.norm(asset.data.root_pos_w[:, :2] - goal_cmd_geneator.pos_command_w[:, :2], dim=1, p=2)
     # abs_velocity = torch.norm(asset.data.root_vel_w[:, 0:3], dim=1, p=2)
-    rel_dist = distance_goal / max_dist
-    return 1 - rel_dist
+    # TODO short term solution, until understood why the command is based on terrain spacing
+    # and not the max distance? just overwrite it locally and not directly in the command cfg
+    if (max_dist < distance_goal.max()).any():
+        max_dist = distance_goal.max() * torch.ones(goal_cmd_geneator.goal_dist.shape[0]).to(device=env.device)
+    rel_dist = distance_goal / max_dist  
+
+    reward = (1 - rel_dist) / env.max_episode_length
+    return reward
+
 
 def goal_heading(
     env: ManagerBasedRLEnv,
@@ -157,10 +165,10 @@ def goal_heading(
     goal = goal_cmd_geneator.pos_command_b
     heading_error = torch.atan2(goal[:, 1], goal[:, 0])  # [-pi, +pi], in robot frame
     # based on cosine similarity (+1, -1) and max episode reward 1
-    heading_reward = torch.cos(heading_error) / env.max_episode_length  
+    heading_reward = torch.cos(heading_error)
     # check if goal reached
     distance_goal = torch.norm(asset.data.root_pos_w[:, :2] - goal_cmd_geneator.pos_command_w[:, :2], dim=1, p=2)
-    reward = torch.where(distance_goal < threshold, torch.ones_like(distance_goal), heading_reward)
+    reward = torch.where(distance_goal < threshold, torch.ones_like(distance_goal), heading_reward) / env.max_episode_length  
     return reward
 
 
@@ -183,13 +191,13 @@ def obstacle_distance(
         Dense reward [0, +1] based on the distance to the obstacles. Needs to have negative weight.
     """
     # extract the used quantities (to enable type-hinting)
-    contact_sensor: RayCaster = env.scene.sensors[dist_sensor.name]
-    distances = contact_sensor.data.distances
+    sensor: RayCaster = env.scene.sensors[dist_sensor.name]
+    distances = sensor.data.distances
     valid = distances > 1e-3
     filtered_data = torch.where(valid, distances, torch.tensor(float("inf")))
     min_values = torch.min(filtered_data, dim=1)[0]
 
-    reward = 1 - torch.tanh((min_values - threshold) / dist_std)
+    reward = (1 - torch.tanh((min_values - threshold) / dist_std)) / env.max_episode_length 
     return reward
 
 
@@ -228,7 +236,7 @@ def obstacle_distance_in_front(
 
     # env.observation_manager.compute_group(group_name="policy").shape
 
-    reward = 1 - torch.tanh((min_values - threshold) / dist_std)
+    reward = (1 - torch.tanh((min_values - threshold) / dist_std)) / env.max_episode_length 
     return reward
 
 
@@ -261,7 +269,7 @@ def goal_progress(
         displacement_vector = displacement_vector / (torch.norm(displacement_vector, dim=1).unsqueeze(-1) + 1e-6)
 
     reward = torch.sum(displacement_vector * asset.data.root_vel_w[:, :2], dim=1)
-    reward = torch.clip(reward, min=0, max=2)
+    reward = torch.clip(reward, min=0, max=2) / env.max_episode_length 
     # check if goal reached
     # reward = torch.where(distance_goal < threshold, 2 * torch.ones_like(distance_goal), reward)
     return reward

@@ -614,6 +614,8 @@ class RobotGoalCommand(CommandTerm):
         self.goal_dist[increase_goal_dist] += increase_by
         self.goal_dist[decrease_goal_dist] -= increase_by
         self.goal_dist = torch.clamp(self.goal_dist, min=1, max=self.cfg.max_goal_distance)
+        # TODO check why radius and max_goal_distance is used in the same context
+        # self.goal_dist = torch.clamp(self.goal_dist, min=1, max=self.cfg.radius)
 
         # success_rate = self.goal_reached_counter.float().mean()
 
@@ -638,7 +640,9 @@ class RobotGoalCommand(CommandTerm):
 
         self.goal_dist_rel[increase_goal_dist] += increase_by
         self.goal_dist_rel[decrease_goal_dist] -= increase_by
-        self.goal_dist_rel = torch.clamp(self.goal_dist_rel, min=1, max=max_goal_dist)
+        self.goal_dist_rel = torch.clamp(self.goal_dist_rel, min=1, max=self.cfg.max_goal_distance)
+        # TODO check why radius and max_goal_distance is used in the same context
+        # self.goal_dist_rel = torch.clamp(self.goal_dist_rel, min=1, max=self.cfg.radius)
 
 
 class DirectionCommand(CommandTerm):

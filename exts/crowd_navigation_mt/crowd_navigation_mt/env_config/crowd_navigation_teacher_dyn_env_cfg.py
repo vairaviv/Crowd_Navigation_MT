@@ -43,9 +43,8 @@ from crowd_navigation_mt.assets.simple_obstacles import (
     WALL_CFG,
 )
 
-
-# LIDAR_HISTORY = mdp.LidarHistory(history_length=1, sensor_cfg=SceneEntityCfg("lidar"), return_pose_history=False)
-
+DISTANCE_THRESHOLD = 0.5
+SPEED_THRESHOLD = 2.5
 
 # observation group:
 @configclass
@@ -165,8 +164,8 @@ class TeacherTerminationsCfg:
     goal_reached = DoneTerm(
         func=mdp.at_goal,  # reward is high to compensate for reset penalty
         params={
-            "distance_threshold": 0.5,
-            "speed_threshold": 2.5
+            "distance_threshold": DISTANCE_THRESHOLD,
+            "speed_threshold": SPEED_THRESHOLD
         },
     )
 
@@ -179,7 +178,7 @@ class TeacherRewardsCfg:
     goal_reached = RewTerm(
         func=mdp.goal_reached,  # reward is high to compensate for reset penalty
         weight=50.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
-        params={"distance_threshold": 0.5, "speed_threshold": 2.5},
+        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD},
     )
 
     goal_progress = RewTerm(
@@ -272,11 +271,30 @@ class TeacherRewardsCfg:
     #     func=mdp.is_alive, weight=+1e-1  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
     # )
 
+class ViewerCfg:
+    """Configuration of the scene viewport camera."""
+
+    # eye: tuple[float, float, float] = (-60.0, 0.5, 70.0)
+    eye: tuple[float, float, float] = (0.0, 0.0, 120.0)
+    """Initial camera position (in m). Default is (7.5, 7.5, 7.5)."""
+    # lookat: tuple[float, float, float] = (-60.0, 0.0, -10000.0)
+    lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    cam_prim_path: str = "/OmniverseKit_Persp"
+    resolution: tuple[int, int] = (1280, 720)
+    origin_type: Literal["world", "env", "asset_root"] = "world"
+    """
+    * ``"world"``: The origin of the world.
+    * ``"env"``: The origin of the environment defined by :attr:`env_index`.
+    * ``"asset_root"``: The center of the asset defined by :attr:`asset_name` in environment :attr:`env_index`.
+    """
+    env_index: int = 0
+    asset_name: str | None = None  # "robot"
+
 
 class CrowdNavigationTeacherDynEnvCfg(CrowdNavigationEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-
+        self.viewer : ViewerCfg = ViewerCfg()
         # add teacher lidar:
         self.scene.lidar = RayCasterCfg(
             prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -322,6 +340,8 @@ class CrowdNavigationTeacherDynEnvCfg(CrowdNavigationEnvCfg):
 
         # add observation group:
         self.observations.policy = TeacherPolicyObsCfg()
+        # modify observation group directly in the class
+        # self.observations.policy.lidar_distances_history.history_length = 5
 
         # change terminations
         self.terminations: TeacherTerminationsCfg = TeacherTerminationsCfg()

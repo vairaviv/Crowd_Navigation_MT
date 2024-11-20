@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     )
 
 NON_LIDAR_DIM = 2 + 8  # commanded pos, proprioception
-HISTORY_LENGTH_STAT = 5
+HISTORY_LENGTH_STAT = 1
 HISTORY_LENGTH_DYN = 10
 DIM_LIDAR = 360
 LIDAR_EXTRA_DIM = 3 * HISTORY_LENGTH_STAT  # history length 5

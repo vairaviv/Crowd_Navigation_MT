@@ -44,11 +44,13 @@ from crowd_navigation_mt.assets.simple_obstacles import (
     WALL_CFG,
 )
 
-"""To improve: we have 3 separate goal_reached functions, one for logging, one for reward and one for termination"""
+"""To improve: we have 3 separate goal_reached functions, one for logging, one for reward and one for termination
 
-##
-# Scene definition
-##
+ATM all functions are getting the same threshold"""
+
+DISTANCE_THRESHOLD = 0.5
+SPEED_THRESHOLD = 2.5
+
 
 ISAAC_GYM_JOINT_NAMES = [
     "LF_HAA",
@@ -65,6 +67,9 @@ ISAAC_GYM_JOINT_NAMES = [
     "RH_KFE",
 ]
 
+##
+# Scene definition
+##
 
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 
@@ -224,7 +229,7 @@ class CommandsCfg:
             raycaster_sensor="lidar",
         ),  # not required for generated terrains, but for moving environments
         # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
-        use_grid_spacing=True,
+        use_grid_spacing=False,
     )
 
 
@@ -234,7 +239,7 @@ class ActionsCfg:
 
     obstacle_bot_positions = mdp.ObstacleActionTermSimpleCfg(
         asset_name="obstacle",
-        max_velocity=5,
+        max_velocity=1,
         max_acceleration=5,
         max_rotvel=6,
         obstacle_center_height=1.05,
@@ -326,7 +331,7 @@ class ObservationsCfg:
         termination_signal = ObsTerm(func=mdp.metrics_termination_signal)
         dones_signal = ObsTerm(func=mdp.metrics_dones_signal)
         goal_reached = ObsTerm(
-            func=mdp.metrics_goal_reached, params={"distance_threshold": 0.5, "speed_threshold": 1.2}
+            func=mdp.metrics_goal_reached, params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD}
         )  # do not care about speed
         undesired_contacts = ObsTerm(
             func=mdp.metrics_undesired_contacts,
@@ -422,7 +427,7 @@ class RewardsCfg:
     goal_reached = RewTerm(
         func=mdp.goal_reached,  # reward is high to compensate for reset penalty
         weight=205.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
-        params={"distance_threshold": 0.5, "speed_threshold": 0.1},
+        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD},
     )
     goal_progress = RewTerm(
         func=mdp.goal_progress,
@@ -448,7 +453,8 @@ class RewardsCfg:
         weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
     )
     action_rate_l2 = RewTerm(
-        func=mdp.action_rate_l2, weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+        func=mdp.action_rate_l2, 
+        weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
     """
     no_robot_movement = RewTerm(
@@ -486,8 +492,8 @@ class TerminationsCfg:
     #     func=mdp.at_goal,
     #     params={
     #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "distance_threshold": 0.5,
-    #         "speed_threshold": 1.0,
+    #         "distance_threshold": DISTANCE_THRESHOLD,
+    #         "speed_threshold": SPEED_THRESHOLD,
     #         "goal_cmd_name": "robot_goal",
     #     },
     #     time_out=True,
