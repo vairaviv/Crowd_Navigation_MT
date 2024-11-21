@@ -64,11 +64,11 @@ class LidarHistory(ManagerTermBase):
         self.decimation = self._cfg.decimation
         self.sensor_cfg = self._cfg.sensor_cfg
 
-    def __call__(self, *args, **kwargs) -> torch.Any:
+    def __call__(self, *args, method) -> torch.Any:
 
-        method_name = kwargs["kwargs"]["method"]
+        # method_name = method.get("method")
 
-        method = getattr(self, method_name, None)
+        method = getattr(self, method, None)
 
         if method is None or not callable(method):
             raise ValueError(f"Method '{method_name}' not found in the class.")

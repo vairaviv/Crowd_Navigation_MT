@@ -36,9 +36,17 @@ class ObservationHistoryTermCfg(ObservationTermCfg):
     """
 
     history_length_actions: int = MISSING
+    """How many actions should be stored"""
     
     history_length_positions: int = MISSING
-    
+    """How many positions should be stored"""
+
+    history_time_span_actions: int = MISSING
+    """The time span of the actions stored"""
+
+    history_time_span_positions: int = MISSING
+    """The time span of the positions stored"""
+
 
     # modifiers: list[ModifierCfg] | None = None
     # """The list of data modifiers to apply to the observation in order. Defaults to None,

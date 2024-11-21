@@ -20,6 +20,11 @@ from . import agents, navigation_env_cfg
 #     },
 # )
 
+
+##########################################
+# Flat Terrain Tasks
+##########################################
+
 # flat terrain for testing
 gym.register(
     id="Isaac-CrowdNavigation-Teacher-Flat-Anymal-D-v0",
@@ -41,6 +46,11 @@ gym.register(
         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOBaseBetaCfg,
     },
 )
+
+##########################################
+# Static Obstacles Tasks
+##########################################
+
 
 # static obstacles PPO Base
 gym.register(
@@ -75,6 +85,12 @@ gym.register(
     },
 )
 
+
+
+##########################################
+# Simple Dynamic Obstacle Tasks
+##########################################
+
 # dynamic obstacles PPO Beta
 gym.register(
     id="Isaac-CrowdNavigation-Teacher-DynObs-Beta-Anymal-D-v0",
@@ -87,7 +103,7 @@ gym.register(
 )
 
 
-# dynamic obstacles PPO CONV BetaCompressed NoGru
+# dynamic obstacles PPO CONV NoGru
 gym.register(
     id="Isaac-CrowdNavigation-Teacher-DynObs-Conv_NoGru-Anymal-D-v0",
     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
@@ -98,8 +114,31 @@ gym.register(
     },
 )
 
+# dynamic obstacles PPO BetaCompressed 
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-DynObs-BetaCompress-Hist-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynEnvHistoryCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOBaseBetaCompressTeacherDynObsHist,
+    },
+)
 
+##########################################
+# SFM Obstacles Tasks
+##########################################
 
+# SFM obstacles PPO BetaCompressed 
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObs-BetaCompress-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynSFMCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOBaseBetaCompressTeacherDynObsHist,
+    },
+)
 
 # # staitc obstacles with heightscan
 # gym.register(

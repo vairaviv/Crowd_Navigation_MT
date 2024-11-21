@@ -28,10 +28,12 @@ if TYPE_CHECKING:
     )
 
 NON_LIDAR_DIM = 2 + 8  # commanded pos, proprioception
-HISTORY_LENGTH_STAT = 1
-HISTORY_LENGTH_DYN = 10
-DIM_LIDAR = 360
-LIDAR_EXTRA_DIM = 3 * HISTORY_LENGTH_STAT  # history length 5
+HISTORY_LENGTH_STAT = 1 # TODO not sure what this is used for...  
+HISTORY_LENGTH_DYN = 10 # observation length for the positions
+DIM_LIDAR = 360 # num of rays for 1D lidar otherwise num_of_rays_in_plane * num_of_planes
+LIDAR_EXTRA_DIM = 3   # history length 5
+ACT_DIM = 2 # observed action dimension
+HISTORY_LENGTH_ACT = 10 # observation length for the actions
 # 875631
 
 
@@ -40,14 +42,17 @@ LIDAR_EXTRA_DIM = 3 * HISTORY_LENGTH_STAT  # history length 5
 @configclass
 class PPOBaseBetaCompressCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 5000
+    max_iterations = 10000
     save_interval = 50
     experiment_name = "crowd_navigation"
     empirical_normalization = False
     seed = 1234
     policy: RslRlPpoActorCriticBetaCompressCfg = RslRlPpoActorCriticBetaCompressCfg(
-        input_dims=[2 + 8, 180],  # target pos, 2d lidar obs. Sum needs to equal observation dimensions
-        actor_hidden_dims_per_split=[[128], [256, 128, 64]],
+        input_dims=[NON_LIDAR_DIM, DIM_LIDAR + LIDAR_EXTRA_DIM],  # target pos, 2d lidar obs. Sum needs to equal observation dimensions
+        actor_hidden_dims_per_split=[
+            [128], 
+            [256, 128, 64]
+            ],
         critic_hidden_dims_per_split=[
             [128],
             [256, 128, 64],
@@ -500,5 +505,40 @@ class PPOCfgDEV(PPOTeacherBetaCfg):
     # max_iterations = 10
 
 
+######################################################################
+# PPO - New Configurations
+######################################################################
+
+@configclass
+class PPOBaseBetaCompressTeacherDynObsHist(PPOBaseBetaCompressCfg):
+    run_name = "PPO_BetaCompress_Teacher_DynObs_Hist"
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.max_iterations = 10000
+        self.policy.input_dims = [
+            NON_LIDAR_DIM, 
+            DIM_LIDAR * HISTORY_LENGTH_DYN,
+            LIDAR_EXTRA_DIM * HISTORY_LENGTH_DYN,
+            ACT_DIM * HISTORY_LENGTH_ACT,
+        ]  # target pos, 2d lidar obs. Sum needs to equal observation dimensions
+        self.policy.actor_hidden_dims_per_split = [
+            [128],
+            [256, 128, 64],
+            [128],
+            [256, 128, 64],
+        ]
+        self.policy.critic_hidden_dims_per_split = [
+            [128],
+            [256, 128, 64],
+            [128],
+            [128],
+        ]
+        self.policy.module_types=[
+            "mlp",
+            "mlp",
+            "mlp",
+            "mlp",
+        ]
 
 

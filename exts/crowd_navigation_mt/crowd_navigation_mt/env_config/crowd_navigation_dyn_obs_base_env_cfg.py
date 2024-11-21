@@ -342,9 +342,13 @@ class ObservationsCfg:
         # For Computing Rewards
         robot_position_history = ObservationHistoryTermCfg(
             func=mdp.ObservationHistory,
-            params={"kwargs" : {"method": "get_history_of_positions"}},
-            history_length_actions=1,
-            history_length_positions=10)
+            params={"method": "get_history_of_positions"},
+            # params={"kwargs" : {"method": "get_history_of_positions"}},
+            history_length_actions=10,
+            history_length_positions=10,
+            history_time_span_positions=5,
+            history_time_span_actions=5
+        )
         
         def __post_init__(self):
             self.enable_corruption = False
