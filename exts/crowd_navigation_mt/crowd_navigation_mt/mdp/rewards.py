@@ -17,8 +17,9 @@ from omni.isaac.lab.terrains import TerrainImporter
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
-    from crowd_navigation_mt.mdp.commands import RobotGoalCommand, DirectionCommand
-
+    # from crowd_navigation_mt.mdp.commands import RobotGoalCommand, DirectionCommand
+    from crowd_navigation_mt.mdp.commands import DirectionCommand
+    from nav_tasks.mdp.commands import GoalCommand as RobotGoalCommand
 
 def feet_air_time(env: ManagerBasedRLEnv, command_name: str, sensor_cfg: SceneEntityCfg, threshold: float) -> torch.Tensor:
     """Reward long steps taken by the feet using L2-kernel.
@@ -126,17 +127,21 @@ def goal_closeness(
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    goal_cmd_geneator: RobotGoalCommand = env.command_manager._terms[command_name]
-    max_dist = goal_cmd_geneator.goal_dist
+    goal_cmd_generator: RobotGoalCommand = env.command_manager._terms[command_name]
+    # max_dist = goal_cmd_geneator.goal_dist
+    max_dist = torch.norm(
+        goal_cmd_generator.pos_command_w[:, :2] - goal_cmd_generator.pos_spawn_w[:, :2], dim=1, p=2
+    )
 
     # compute the reward
-    distance_goal = torch.norm(asset.data.root_pos_w[:, :2] - goal_cmd_geneator.pos_command_w[:, :2], dim=1, p=2)
+    distance_goal = torch.norm(asset.data.root_pos_w[:, :2] - goal_cmd_generator.pos_command_w[:, :2], dim=1, p=2)
     # abs_velocity = torch.norm(asset.data.root_vel_w[:, 0:3], dim=1, p=2)
     # TODO short term solution, until understood why the command is based on terrain spacing
     # and not the max distance? just overwrite it locally and not directly in the command cfg
-    if (max_dist < distance_goal.max()).any():
-        max_dist = distance_goal.max() * torch.ones(goal_cmd_geneator.goal_dist.shape[0]).to(device=env.device)
-    rel_dist = distance_goal / max_dist  
+    # if (max_dist < distance_goal.max()).any():
+    #     max_dist = distance_goal.max() * torch.ones(goal_cmd_generator.goal_dist.shape[0]).to(device=env.device)
+
+    rel_dist = distance_goal / max_dist
 
     reward = (1 - rel_dist) / env.max_episode_length
     return reward

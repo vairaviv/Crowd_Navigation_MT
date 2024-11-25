@@ -101,6 +101,8 @@ class ObstacleActionTermSimple(ActionTerm):
 
         # position error
         target_positions = self._env.observation_manager.compute_group(group_name="obstacle_control")
+        if target_positions.shape[1] > 2:
+            target_positions = target_positions[:,:2]
         # target_positions = command_2d_pos[:, :2]
 
         current_positions = self._asset.data.root_pos_w[:, :2]
@@ -153,26 +155,26 @@ class ObstacleActionTermSimple(ActionTerm):
 
         self._asset.write_root_velocity_to_sim(self._vel_command)
 
-        ##
-        # set z position
-        ##
-        ray_casts = self._raycaster.data.ray_hits_w[..., 2]
-        ray_casts[torch.isinf(ray_casts)] = -1000
-        z_heights = torch.max(ray_casts, dim=1).values + self.cfg.obstacle_center_height
+        # ##
+        # # set z position
+        # ##
+        # ray_casts = self._raycaster.data.ray_hits_w[..., 2]
+        # ray_casts[torch.isinf(ray_casts)] = -1000
+        # z_heights = torch.max(ray_casts, dim=1).values + self.cfg.obstacle_center_height
 
-        if self._env.common_step_counter > 0:
-            self._asset.data.root_pos_w[:, 2] = z_heights
+        # if self._env.common_step_counter > 0:
+        #     self._asset.data.root_pos_w[:, 2] = z_heights
 
-            self._asset.write_root_pose_to_sim(self._asset.data.root_state_w[:, :7])
+        #     self._asset.write_root_pose_to_sim(self._asset.data.root_state_w[:, :7])
 
-        else:
-            # set the initial position to grid origins
-            self._asset.data.root_pos_w[:, :2] = self.env.scene.env_origins[:, :2] + torch.tensor(
-                self.env.scene.rigid_objects[self.name].cfg.init_state.pos
-            )[:2].to(self.device).unsqueeze(0)
-            self._asset.data.root_pos_w[:, 2] = z_heights
+        # else:
+        #     # set the initial position to grid origins
+        #     self._asset.data.root_pos_w[:, :2] = self.env.scene.env_origins[:, :2] + torch.tensor(
+        #         self.env.scene.rigid_objects[self.name].cfg.init_state.pos
+        #     )[:2].to(self.device).unsqueeze(0)
+        #     self._asset.data.root_pos_w[:, 2] = z_heights
 
-            self._asset.write_root_pose_to_sim(self._asset.data.root_state_w[:, :7])
+        #     self._asset.write_root_pose_to_sim(self._asset.data.root_state_w[:, :7])
 
 
 @configclass

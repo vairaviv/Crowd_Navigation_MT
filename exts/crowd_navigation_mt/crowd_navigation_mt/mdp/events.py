@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from crowd_navigation_mt.mdp.commands import RobotGoalCommand
 
 
-def reset_robot_position(
+def reset_robot_position_plr(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
     additive_heading_range: dict[str, tuple[float, float]],
