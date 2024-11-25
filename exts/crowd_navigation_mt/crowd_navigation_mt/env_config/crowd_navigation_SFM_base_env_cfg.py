@@ -186,7 +186,7 @@ class SFMObsSceneCfg(EmptySceneCfg):
     # obstacles sensors
     sfm_obstacle_lidar : RayCasterCfg = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/SFM_Obstacle",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 1.0)),
         attach_yaw_only=True,
         pattern_cfg=patterns.GridPatternCfg(resolution=0.2, size=[1.0, 1.0]),
         debug_vis=False,

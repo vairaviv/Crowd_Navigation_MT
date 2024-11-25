@@ -28,7 +28,15 @@ class SFMActionCfg(ActionTermCfg):
     """Offset for the actions [vx, vy, w]."""
     observation_group: str = "sfm_obstacle_control_obs"
     """Observation group to use for the low level policy."""
+    obstacle_sensor: str = "sfm_obstacle_lidar"
+    """Lidar to analyse environment arround obstacles"""
     policy_scaling: list[float] = [1.0, 1.0, 1.0]
     """Policy dependent scaling for the actions [vx, vy, w]."""
     robot_visible: bool = False
     """If the policy will take the agent into account"""
+    robot_radius: float = 3.0
+    """Radius to account a robot into social force model"""
+    stat_obstacle_radius: float = 1.5
+    """Radius to account a static obstacle into social force model"""
+    max_sfm_velocity: float = 1.0
+    """velocity multiplied to the normed attraction force vector"""
