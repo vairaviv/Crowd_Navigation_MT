@@ -76,9 +76,9 @@ class TeacherPolicyObsCfg(ObsGroup):
 
     lidar_distances_history = LidarHistoryTermCfg(
         func=mdp.LidarHistory,
-        params={"kwargs" : {"method": "get_history"}},
+        params={"method": "get_history"},
         history_length=1, 
-        decimation=1, 
+        # decimation=1, 
         sensor_cfg=SceneEntityCfg("lidar"), 
         return_pose_history=True,
     )
@@ -336,7 +336,7 @@ class CrowdNavigationTeacherDynEnvCfg(CrowdNavigationEnvCfg):
         self.commands.obstacle_target_pos.static = True
 
         # change goal command
-        self.commands.robot_goal.radius = 3.0
+        # self.commands.robot_goal.radius = 3.0
 
         # add observation group:
         self.observations.policy = TeacherPolicyObsCfg()

@@ -17,7 +17,7 @@ from crowd_navigation_mt.env_config.crowd_navigation_teacher_dyn_env_cfg import 
 
 from crowd_navigation_mt.env_config.crowd_navigation_flat_env_cfg import CrowdNavigationFlatEnvCfg
 
-from crowd_navigation_mt.env_config.crowd_navigation_teacher_dyn_SFM_env_cfg import CrowdNavigationTeacherDynSFMEnvCfg
+from crowd_navigation_mt.env_config.crowd_navigation_SFM_base_env_cfg import SFMBaseEnvCfg
 # from crowd_navigation_mt.env_config.crowd_navigation_recording_env_cfg import (
 #     CrowdNavigationRecordingEnvCfg,
 # )
@@ -143,7 +143,7 @@ class AnymalDCrowdNavigationTeacherDynEnvHistoryCfg(CrowdNavigationTeacherDynEnv
 
 
 @configclass
-class AnymalDCrowdNavigationTeacherDynSFMCfg(CrowdNavigationTeacherDynSFMEnvCfg):
+class AnymalDSFMCfg(SFMBaseEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -163,7 +163,7 @@ class AnymalDCrowdNavigationTeacherDynSFMCfg(CrowdNavigationTeacherDynSFMEnvCfg)
         self.scene.robot.spawn.scale = [1.15, 1.15, 1.15]
 
         #change history length
-        self.observations.policy.lidar_distances_history.history_length = 10
+        # self.observations.policy.lidar_distances_history.history_length = 10
 
 
 # @configclass

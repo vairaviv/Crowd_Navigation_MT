@@ -135,8 +135,8 @@ gym.register(
     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherDynSFMCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOBaseBetaCompressTeacherDynObsHist,
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDSFMCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOBaseCfg,
     },
 )
 
