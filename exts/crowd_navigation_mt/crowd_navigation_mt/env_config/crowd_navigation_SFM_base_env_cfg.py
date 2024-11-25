@@ -279,14 +279,14 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    sfm_obstacle_positions = mdp.ObstacleActionTermSimpleCfg(
-        asset_name="sfm_obstacle",
-        max_velocity=1,
-        max_acceleration=5,
-        max_rotvel=6,
-        obstacle_center_height=1.05,
-        raycaster_sensor="sfm_obstacle_lidar",
-    )
+    # sfm_obstacle_positions = mdp.ObstacleActionTermSimpleCfg(
+    #     asset_name="sfm_obstacle",
+    #     max_velocity=1,
+    #     max_acceleration=5,
+    #     max_rotvel=6,
+    #     obstacle_center_height=1.05,
+    #     raycaster_sensor="sfm_obstacle_lidar",
+    # )
 
     velocity_command = mdp.PerceptiveNavigationSE2ActionCfg(
         asset_name="robot",
@@ -302,7 +302,14 @@ class ActionsCfg:
         scale=[1.5, 0.5, 2.0],
         offset=[-0.25, -0.25, -1.0],
     )
-
+    
+    sfm_obstacle_velocity = mdp.SFMActionCfg(
+        asset_name="sfm_obstacle",
+        low_level_decimation=4,
+        use_raw_actions=True,
+        observation_group="sfm_obstacle_control_obs",
+        robot_visible=False,
+    )
 
 @configclass
 class ObservationsCfg:

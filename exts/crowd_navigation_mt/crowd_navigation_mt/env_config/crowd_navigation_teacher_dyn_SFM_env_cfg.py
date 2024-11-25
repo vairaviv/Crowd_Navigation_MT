@@ -228,10 +228,6 @@ class CrowdNavigationTeacherDynSFMEnvCfg(CrowdNavigationEnvCfg):
         # )
         # remove obstacles:
         # self.scene.obstacle = EMPTY_OBS_CFG.replace(prim_path="{ENV_REGEX_NS}/Obstacle")
-        
-
-        # change goal command
-        self.commands.robot_goal.radius = 3.0
 
         # add observation group:
         self.observations.policy = TeacherPolicyObsCfg()
