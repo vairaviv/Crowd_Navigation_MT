@@ -74,11 +74,9 @@ class TeacherPolicyObsCfg(ObsGroup):
     #     clip=(-100.0, 100.0),
     # )
 
-    # TODO currently the policy doesnt observe the lidar history
-
     lidar_distances_history = LidarHistoryTermCfg(
         func=mdp.LidarHistory,
-        params={"kwargs" : {"method": "get_history"}},
+        params={"method": "get_history"},
         history_length=1, 
         decimation=1, 
         sensor_cfg=SceneEntityCfg("lidar"), 
@@ -206,6 +204,8 @@ class TeacherRewardsCfg:
         weight=-2.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
         params={"threshold": 0.75, "dist_std": 0.2, "dist_sensor": SceneEntityCfg("lidar")},
     )
+    
+     # # TODO add penality for obstacles being in front of the robot
 
     # obstacle_in_front_narrow = RewTerm(
     #     func=mdp.obstacle_distance_in_front,
@@ -224,7 +224,7 @@ class TeacherRewardsCfg:
     #     weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
     #     params={"threshold": 1, "dist_std": 5, "dist_sensor": SceneEntityCfg("lidar")},
     # )
-    # # TODO add penality for obstacles being in front of the robot
+   
 
     # penalty for colliding with obstacles
     undesired_contacts = RewTerm(

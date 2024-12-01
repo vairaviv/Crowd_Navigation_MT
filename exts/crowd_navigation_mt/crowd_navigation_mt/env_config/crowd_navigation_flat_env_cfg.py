@@ -233,42 +233,6 @@ class ObservationsCfg:
             func=mdp.generated_commands_reshaped, params={"command_name": "robot_goal", "flatten": True}  # robot_goal
         )
 
-        # add cpg state to the proprioception group
-
-        # cpg_state = ObsTerm(func=mdp.cgp_state)
-
-        # privileged sensor observations
-        # lidar_distances = ObsTerm(
-        #     func=mdp.lidar_obs_dist,
-        #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
-        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
-        #     clip=(-100.0, 100.0),
-        # )
-
-        # TODO currently the policy doesnt observe the lidar history
-
-        # lidar_distances_history = ObsTerm(
-        #     func=lambda env: LIDAR_HISTORY.get_history(env),
-        #     clip=(-100.0, 100.0),
-        # )
-
-        # height_scanner = ObsTerm(
-        #     func=mdp.heigh_scan_binary,
-        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
-        # )
-
-        # lidar_mesh_velocities = ObsTerm(
-        #     func=mdp.lidar_obs_vel_rel_2d,
-        #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
-        #     clip=(-100.0, 100.0),
-        # )
-
-        # # optional segmentation
-        # segmentation = ObsTerm(
-        #     func=mdp.lidar_panoptic_segmentation,
-        #     params={"sensor_cfg": SceneEntityCfg("lidar"), "flatten": True},
-        # )
-
         def __post_init__(self):
             self.enable_corruption = False
             self.concatenate_terms = True
@@ -295,17 +259,6 @@ class ObservationsCfg:
             params={"threshold": 0.01, "body_names": [".*THIGH", ".*HIP", ".*SHANK", "base"]},
         )
         episode_length = ObsTerm(func=mdp.metrics_episode_length)
-
-        # For Computing Rewards
-        # robot_position_history = ObservationHistoryTermCfg(
-        #     func=mdp.ObservationHistory,
-        #     params={"kwargs" : {"method": "get_history_of_positions"}},
-        #     history_length_actions=1,
-        #     history_length_positions=10
-        #     history_time_span_positions=5,
-        #     history_time_span_actions=5
-        # ) # ObsTerm(func=lambda env: OBSERVATION_HISTORY_CLASS.get_history_of_positions(env), clip=None)
-
 
         def __post_init__(self):
             self.enable_corruption = False
@@ -358,12 +311,12 @@ class EventCfg:
     # )
 
     reset_base = EventTerm(
-        func=mdp.reset_robot_position,
+        func=mdp.reset_robot_position_plr,
         mode="reset",
         params={
-            # "additive_heading_range": {"yaw": (-1.0, +1.0)},
+            # "yaw_range": (0.0, 0.0),
             "additive_heading_range": {"yaw": (-3.14, 3.14)},
-            "command_name": "robot_goal",
+            "goal_command_generator_name": "robot_goal",
         },
     )
 

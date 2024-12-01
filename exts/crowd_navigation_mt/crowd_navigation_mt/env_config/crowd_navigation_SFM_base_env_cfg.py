@@ -111,6 +111,27 @@ class SFMObsSceneCfg(EmptySceneCfg):
     # def __post_init__(self):
     #     sfm_obstacle: SFMObstacleImporterCfg = SFMObstacleImporterCfg()
     
+    # Terrain configs
+    terrain = TerrainImporterCfg(
+        prim_path="/World/ground",
+        terrain_type="generator",
+        terrain_generator=OBS_TERRAINS_CFG,
+        max_init_terrain_level=2,
+        collision_group=-1,
+        # env_spacing=8.0,
+        physics_material=sim_utils.RigidBodyMaterialCfg(
+            friction_combine_mode="multiply",
+            restitution_combine_mode="multiply",
+            static_friction=1.0,
+            dynamic_friction=1.0,
+        ),
+        # visual_material=sim_utils.MdlFileCfg(
+        #     mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
+        #     project_uvw=True,
+        # ),
+        debug_vis=False,
+    )
+    
     ##
     # Robots configs
     ##
@@ -183,12 +204,32 @@ class SFMObsSceneCfg(EmptySceneCfg):
         collision_group=-1,
     )
 
+    # PLRs obstacle config, useful for debugging
+    # sfm_obstacle : AssetBaseCfg = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/SFM_Obstacle",
+    #     spawn=sim_utils.CuboidCfg(
+    #         size=(0.75, 0.75, 2.0),  # (0.3, 0.75, 2.0)
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(),
+    #         mass_props=None,  # sim_utils.MassPropertiesCfg(mass=1.0),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(),
+    #         visual_material=sim_utils.PreviewSurfaceCfg(metallic=0.2, diffuse_color=(0.6, 0.3, 0.0)),
+    #     ),
+    #     collision_group=-1,
+    #     init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 1.0, 1), lin_vel=(1.0, 0.0, 0.0)),
+    # )
+
     # obstacles sensors
     sfm_obstacle_lidar : RayCasterCfg = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/SFM_Obstacle",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 1.0)),
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)), # in the center of the rigid body
         attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.2, size=[1.0, 1.0]),
+        # pattern_cfg=patterns.GridPatternCfg(resolution=0.2, size=[1.0, 1.0]),
+        pattern_cfg = patterns.LidarPatternCfg(
+            channels=1,
+            vertical_fov_range=(0.0, 0.0),
+            horizontal_fov_range=(0, 360),
+            horizontal_res=1,
+        ),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"], # TODO add robots and other obstacles here
     )
@@ -206,7 +247,7 @@ class CommandsCfg:
     # target pos for the obstacle
     sfm_obstacle_target_pos = GoalCommandCfg(
         asset_name="sfm_obstacle",
-        resampling_time_range=(100000.0, 1000000.0),  # resample only on reset
+        resampling_time_range=(10.0, 20.0), 
         debug_vis=True,
         trajectory_config={
             "num_paths": [100],
@@ -215,9 +256,9 @@ class CommandsCfg:
         },
         z_offset_spawn=0.2,
         infite_sampling=True,
-        max_trajectories=100,  # None
+        max_trajectories=50,  # None
         traj_sampling=TrajectorySamplingCfg(
-            sample_points=1000,  # 1000
+            sample_points=100,  # 1000
             height=1.05,
             enable_saved_paths_loading=True,
             terrain_analysis=TerrainAnalysisCfg(
@@ -309,6 +350,7 @@ class ActionsCfg:
         use_raw_actions=True,
         observation_group="sfm_obstacle_control_obs",
         robot_visible=False,
+        debug_vis=True,
     )
 
 @configclass
@@ -557,26 +599,26 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
-    # # time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
-    # )
+    time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    base_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+    )
     # thigh_contact = DoneTerm(
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     # )
 
-    # goal_reached = DoneTerm(
-    #     func=mdp.at_goal,
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "distance_threshold": DISTANCE_THRESHOLD,
-    #         "speed_threshold": SPEED_THRESHOLD,
-    #         "goal_cmd_name": "robot_goal",
-    #     },
-    #     time_out=True,
-    # )
+    goal_reached = DoneTerm(
+        func=mdp.at_goal,
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "distance_threshold": DISTANCE_THRESHOLD,
+            "speed_threshold": SPEED_THRESHOLD,
+            "goal_cmd_name": "robot_goal",
+        },
+        time_out=True,
+    )
 
     # update_commands = DoneTerm(
     #     func=mdp.update_command_on_termination,

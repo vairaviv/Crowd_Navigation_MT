@@ -237,6 +237,8 @@ class TeacherRewardsCfg:
         params={"threshold": 1.5, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar")},
     )
 
+    # TODO add penality for obstacles being in front of the robot
+
     obstacle_in_front_narrow = RewTerm(
         func=mdp.obstacle_distance_in_front,
         weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
@@ -254,7 +256,7 @@ class TeacherRewardsCfg:
     #     weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
     #     params={"threshold": 1, "dist_std": 5, "dist_sensor": SceneEntityCfg("lidar")},
     # )
-    # TODO add penality for obstacles being in front of the robot
+   
 
     # # penalty for colliding with obstacles
     # undesired_contacts = RewTerm(

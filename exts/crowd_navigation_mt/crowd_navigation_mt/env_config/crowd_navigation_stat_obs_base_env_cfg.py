@@ -64,7 +64,8 @@ ISAAC_GYM_JOINT_NAMES = [
 # OBSERVATION_HISTORY_CLASS = mdp.ObservationHistory(history_length_actions=1, history_length_positions=20)
 from omni.isaac.lab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 
-from crowd_navigation_mt.terrains.config import ROUGH_TERRAINS_CFG, OBS_TERRAINS_CFG  # isort: skip
+from crowd_navigation_mt.terrains import ROUGH_TERRAINS_CFG, OBS_TERRAINS_CFG, DEMO_NAV_TERRAIN_CFG  # isort: skip
+
 
 
 @configclass
@@ -75,6 +76,7 @@ class StatObsScene(InteractiveSceneCfg):
         prim_path="/World/ground",
         terrain_type="generator",
         terrain_generator=OBS_TERRAINS_CFG,
+        # terrain_generator=DEMO_NAV_TERRAIN_CFG,
         max_init_terrain_level=2,
         collision_group=-1,
         # env_spacing=8.0,
@@ -269,7 +271,7 @@ class ObservationsCfg:
         # For Computing Rewards
         robot_position_history = ObservationHistoryTermCfg(
             func=mdp.ObservationHistory,
-            params={"kwargs" : {"method": "get_history_of_positions"}},
+            params={"method": "get_history_of_positions"},
             history_length_actions=10,
             history_length_positions=10,
             history_time_span_positions=5,
@@ -311,7 +313,7 @@ class EventCfg:
     # reset
     # TODO curriculum spawning
     # reset_base = EventTerm(
-    #     func=mdp.reset_robot_position,
+    #     func=mdp.reset_robot_position_plr,
     #     mode="reset",
     #     params={
     #         "additive_heading_range": {"yaw": (-1.0, +1.0)},

@@ -562,7 +562,7 @@ class EventCfg:
 
     # reset
     reset_base = EventTerm(
-        func=mdp.reset_robot_position,
+        func=mdp.reset_robot_position_plr,
         mode="reset",
         params={
             "additive_heading_range": {"yaw": (0.0, 0.0)},

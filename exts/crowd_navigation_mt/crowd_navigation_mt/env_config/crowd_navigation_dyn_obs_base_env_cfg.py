@@ -432,7 +432,7 @@ class EventCfg:
 
     # TODO curriculum spawning
     reset_base = EventTerm(
-        func=mdp.reset_robot_position,
+        func=mdp.reset_robot_position_plr,
         mode="reset",
         params={
             # "additive_heading_range": {"yaw": (-1.0, +1.0)},
