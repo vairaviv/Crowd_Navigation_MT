@@ -224,41 +224,41 @@ class CommandsCfg:
         sample_local=True,
     )
 
-    robot_goal = GoalCommandCfg(
-        asset_name="robot",
-        resampling_time_range=(100000.0, 100000.0),  # resample only on reset
-        debug_vis=True,
-        trajectory_config={
-            "num_paths": [100],
-            "max_path_length": [10.0],
-            "min_path_length": [2.0],
-        },
-        z_offset_spawn=0.2,
-        infite_sampling=True,
-        max_trajectories=10, # None
-        traj_sampling=TrajectorySamplingCfg(
-            sample_points=100,  # 1000
-            height=0.5,
-            enable_saved_paths_loading=True,
-            terrain_analysis=TerrainAnalysisCfg(
-                raycaster_sensor="lidar",
-                semantic_cost_mapping=None,
-            )
-        )
-    )
-
-    # robot_goal = mdp.RobotGoalCommandCfg(
-    #     # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
+    # robot_goal = GoalCommandCfg(
     #     asset_name="robot",
     #     resampling_time_range=(100000.0, 100000.0),  # resample only on reset
     #     debug_vis=True,
-    #     radius=5.0,
-    #     terrain_analysis=mdp.TerrainAnalysisCfg(
-    #         raycaster_sensor="lidar",
-    #     ),  # not required for generated terrains, but for moving environments
-    #     # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
-    #     use_grid_spacing=False,
+    #     trajectory_config={
+    #         "num_paths": [100],
+    #         "max_path_length": [10.0],
+    #         "min_path_length": [2.0],
+    #     },
+    #     z_offset_spawn=0.2,
+    #     infite_sampling=True,
+    #     max_trajectories=10, # None
+    #     traj_sampling=TrajectorySamplingCfg(
+    #         sample_points=100,  # 1000
+    #         height=0.5,
+    #         enable_saved_paths_loading=True,
+    #         terrain_analysis=TerrainAnalysisCfg(
+    #             raycaster_sensor="lidar",
+    #             semantic_cost_mapping=None,
+    #         )
+    #     )
     # )
+
+    robot_goal = mdp.RobotGoalCommandCfg(
+        # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
+        asset_name="robot",
+        resampling_time_range=(100000.0, 100000.0),  # resample only on reset
+        debug_vis=True,
+        radius=5.0,
+        terrain_analysis=mdp.TerrainAnalysisCfg(
+            raycaster_sensor="lidar",
+        ),  # not required for generated terrains, but for moving environments
+        # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
+        use_grid_spacing=False,
+    )
 
 
 @configclass

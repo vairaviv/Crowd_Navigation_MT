@@ -228,7 +228,7 @@ class RobotGoalCommand(CommandTerm):
         # -- goal commands
         self.pos_command_b = torch.zeros(self.num_envs, 3, device=self.device)
         self.pos_command_w = torch.zeros_like(self.pos_command_b)
-        self.pos_command_w[:, 2] = 0.5
+        self.pos_command_w[:, 2] = 0.8
 
         # self.heading_command_b = torch.zeros(self.num_envs, device=self.device)
         # self.heading_command_w = torch.zeros_like(self.heading_command_b)
@@ -239,7 +239,7 @@ class RobotGoalCommand(CommandTerm):
         # TODO check assumption: env frame and global frame have same z (xy planes align)
         # self.pos_spawn_w = self.terrain_analysis.sample_spawn(env.scene.env_origins[:, :2])
         self.pos_spawn_w = torch.zeros(self.num_envs, 3, device=self.device)
-        self.pos_spawn_w[:, 2] = 0.5
+        self.pos_spawn_w[:, 2] = 0.8
         self.pos_spawn_w[:, :2] = env.scene.env_origins[:, :2]
 
         self.heading_spawn_w = torch.zeros(self.num_envs, device=self.device)

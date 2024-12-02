@@ -31,7 +31,7 @@ from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
 from crowd_navigation_mt import CROWDNAV_DATA_DIR
 from crowd_navigation_mt.mdp import ObservationHistoryTermCfg
 
-from nav_tasks.mdp.commands import GoalCommandCfg
+from nav_tasks.mdp.commands import GoalCommandCfg, ConsecutiveGoalCommandCfg
 from nav_collectors.collectors import TrajectorySamplingCfg
 from nav_collectors.terrain_analysis import TerrainAnalysisCfg
 
@@ -115,8 +115,8 @@ class SFMObsSceneCfg(EmptySceneCfg):
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="generator",
-        terrain_generator=OBS_TERRAINS_CFG,
-        max_init_terrain_level=2,
+        terrain_generator=OBS_TERRAINS_DYNOBS_CFG,  # OBS_TERRAINS_CFG,
+        # max_init_terrain_level=2,
         collision_group=-1,
         # env_spacing=8.0,
         physics_material=sim_utils.RigidBodyMaterialCfg(
@@ -190,6 +190,7 @@ class SFMObsSceneCfg(EmptySceneCfg):
     ##
 
     # obstacle
+    # trimesh is not working for cylinders and therefore it cant get the mesh_prim_path
     sfm_obstacle : AssetBaseCfg = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/SFM_Obstacle",
         spawn=sim_utils.CylinderCfg(
@@ -200,9 +201,13 @@ class SFMObsSceneCfg(EmptySceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.6, 0.9, 0.6)),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 5.0, 1.0)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 5.0, 3.0)),
         collision_group=-1,
     )
+
+    # sfm_obstacle.replace(
+    #     prim_path="{ENV_REGEX_NS}/SFM_Obstacle",
+    # )
 
     # PLRs obstacle config, useful for debugging
     # sfm_obstacle : AssetBaseCfg = RigidObjectCfg(
@@ -244,30 +249,47 @@ class CommandsCfg:
     """Command specifications for the MDP.
     In this task, the commands probably will be the goal positions for the robot to reach."""
 
-    # target pos for the obstacle
-    sfm_obstacle_target_pos = GoalCommandCfg(
+    ##
+    # Dynamic obstacle's Commands
+    ##
+
+    # target pos for the obstacle consecutive goal samplings from Nav-Suite
+    sfm_obstacle_target_pos = ConsecutiveGoalCommandCfg(
         asset_name="sfm_obstacle",
-        resampling_time_range=(10.0, 20.0), 
-        debug_vis=True,
-        trajectory_config={
-            "num_paths": [100],
-            "max_path_length": [10.0],
-            "min_path_length": [2.0],
-        },
-        z_offset_spawn=0.2,
-        infite_sampling=True,
-        max_trajectories=50,  # None
-        traj_sampling=TrajectorySamplingCfg(
-            sample_points=100,  # 1000
-            height=1.05,
-            enable_saved_paths_loading=True,
-            terrain_analysis=TerrainAnalysisCfg(
-                raycaster_sensor="sfm_obstacle_lidar",
-                semantic_cost_mapping=None,
-            )
+        resampling_time_range=(10000000.0, 10000000.0), 
+        debug_vis=False,
+        terrain_analysis=TerrainAnalysisCfg(
+            raycaster_sensor="sfm_obstacle_lidar",
+            semantic_cost_mapping=None,
         ),
-        reset_pos_term_name="reset_sfm_obstacle",
+        resample_distance_threshold=0.5,
     )
+    # --------------------------------------------------------
+    # target pos for the obstacle random goal samplings from Nav-Suite
+    # sfm_obstacle_target_pos = GoalCommandCfg(
+    #     asset_name="sfm_obstacle",
+    #     resampling_time_range=(10.0, 20.0), 
+    #     debug_vis=True,
+    #     trajectory_config={
+    #         "num_paths": [100],
+    #         "max_path_length": [10.0],
+    #         "min_path_length": [2.0],
+    #     },
+    #     z_offset_spawn=0.2,
+    #     infite_sampling=True,
+    #     max_trajectories=50,  # None
+    #     traj_sampling=TrajectorySamplingCfg(
+    #         sample_points=100,  # 1000
+    #         height=1.05,
+    #         enable_saved_paths_loading=True,
+    #         terrain_analysis=TerrainAnalysisCfg(
+    #             raycaster_sensor="sfm_obstacle_lidar",
+    #             semantic_cost_mapping=None,
+    #         )
+    #     ),
+    #     reset_pos_term_name="reset_sfm_obstacle",
+    # )
+    # --------------------------------------------------------
     # sfm_obstacle_target_pos = mdp.UniformPose2dCommandCfg(
     #     asset_name="sfm_obstacle",
     #     resampling_time_range=(1000000, 10000000),
@@ -278,48 +300,75 @@ class CommandsCfg:
     #     ),
     #     debug_vis=True
     # )
+    # --------------------------------------------------------
 
-    robot_goal = GoalCommandCfg(
-        asset_name="robot",
-        resampling_time_range=(100000.0, 100000.0),  # resample only on reset
-        debug_vis=True,
-        trajectory_config={
-            "num_paths": [100],
-            "max_path_length": [10.0],
-            "min_path_length": [2.0],
-        },
-        z_offset_spawn=0.2,
-        infite_sampling=True,
-        max_trajectories=10, # None
-        traj_sampling=TrajectorySamplingCfg(
-            sample_points=100,  # 1000
-            height=0.5,
-            enable_saved_paths_loading=True,
-            terrain_analysis=TerrainAnalysisCfg(
-                raycaster_sensor="lidar",
-                semantic_cost_mapping=None,
-            )
-        )
-    )
+    
+    ##
+    # Robot's Commands
+    ##
 
-    # robot_goal = mdp.RobotGoalCommandCfg(
-    #     # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
+    # # target position for the robot, random goal sampling from the Nav-Suite
+    # robot_goal = GoalCommandCfg(
     #     asset_name="robot",
     #     resampling_time_range=(100000.0, 100000.0),  # resample only on reset
     #     debug_vis=True,
-    #     radius=5.0,
-    #     terrain_analysis=mdp.TerrainAnalysisCfg(
-    #         raycaster_sensor="lidar",
-    #     ),  # not required for generated terrains, but for moving environments
-    #     # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
-    #     use_grid_spacing=False,
+    #     trajectory_config={
+    #         "num_paths": [100],
+    #         "max_path_length": [10.0],
+    #         "min_path_length": [2.0],
+    #     },
+    #     z_offset_spawn=0.2,
+    #     infite_sampling=True,
+    #     max_trajectories=10, # None
+    #     traj_sampling=TrajectorySamplingCfg(
+    #         sample_points=100,  # 1000
+    #         height=0.5,
+    #         enable_saved_paths_loading=True,
+    #         terrain_analysis=TerrainAnalysisCfg(
+    #             raycaster_sensor="lidar",
+    #             semantic_cost_mapping=None,
+    #         )
+    #     )
     # )
+    
+    # target position for the robot, random goal sampling from the previous project, terrain Analysis doesn't work
+    robot_goal = mdp.RobotGoalCommandCfg(
+        # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
+        asset_name="robot",
+        resampling_time_range=(100000.0, 100000.0),  # resample only on reset
+        debug_vis=True,
+        radius=1.0,
+        terrain_analysis=mdp.TerrainAnalysisCfg(
+            raycaster_sensor="lidar",
+        ),  # not required for generated terrains, but for moving environments
+        # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
+        use_grid_spacing=False,
+    )
 
 
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
+    ##
+    # Dynamic Obstacle's action
+    ##
 
+    # Social Force Model implementation, currently position control 
+    sfm_obstacle_velocity = mdp.SFMActionCfg(
+        asset_name="sfm_obstacle",
+        low_level_decimation=4,
+        use_raw_actions=True,
+        observation_group="sfm_obstacle_control_obs",
+        robot_visible=False, # currently not implemented still a TODO
+        debug_vis=False,
+        max_sfm_velocity=0.2,
+        stat_obstacle_radius=1.5,
+        command_term_name="sfm_obstacle_target_pos",
+        obstacle_sensor="sfm_obstacle_lidar",
+    )
+
+    # --------------------------------------------------------
+    # PD-Controller, works like a velocity controller
     # sfm_obstacle_positions = mdp.ObstacleActionTermSimpleCfg(
     #     asset_name="sfm_obstacle",
     #     max_velocity=1,
@@ -328,6 +377,11 @@ class ActionsCfg:
     #     obstacle_center_height=1.05,
     #     raycaster_sensor="sfm_obstacle_lidar",
     # )
+    # --------------------------------------------------------
+
+    ##
+    # Robot's Actions
+    ##
 
     velocity_command = mdp.PerceptiveNavigationSE2ActionCfg(
         asset_name="robot",
@@ -343,15 +397,7 @@ class ActionsCfg:
         scale=[1.5, 0.5, 2.0],
         offset=[-0.25, -0.25, -1.0],
     )
-    
-    sfm_obstacle_velocity = mdp.SFMActionCfg(
-        asset_name="sfm_obstacle",
-        low_level_decimation=4,
-        use_raw_actions=True,
-        observation_group="sfm_obstacle_control_obs",
-        robot_visible=False,
-        debug_vis=True,
-    )
+
 
 @configclass
 class ObservationsCfg:
@@ -457,7 +503,7 @@ class ObservationsCfg:
         lidar_distances_history = LidarHistoryTermCfg(
             func=mdp.LidarHistory,
             params={"method": "get_history"},
-            history_length=1,
+            history_length=10,
             # decimation=1,
             sensor_cfg=SceneEntityCfg("lidar"),
             return_pose_history=True,
@@ -499,36 +545,49 @@ class EventCfg:
     )
     
     # reset obstacle spawn position according to obstacle command
-    reset_sfm_obstacle = EventTerm(
-        func=mdp.reset_robot_position,
-        mode="reset",
-        params={
-            "goal_command_generator_name": "sfm_obstacle_target_pos",
-            "asset_cfg": SceneEntityCfg("sfm_obstacle"),
-            "yaw_range": (-3.14, 3.14),
-        }
-    )
+    # TODO: TerrainAnalysisRootReset is not of type ManagerTerm, check what the issue is
+    # reset_sfm_obstacle = EventTerm(
+    #     func=mdp.TerrainAnalysisRootReset,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("sfm_obstacle"),
+    #         "yaw_range": (-3.14, 3.14),
+    #         "velocity_range": (0.0, 0.0),
+    #     }
+    # )
+    # -----------------------------------------
+    # reset only works with Command of type :class:`nav_tasks.mdp.GoalCommand` with certain attribute 
+    # reset_sfm_obstacle = EventTerm(
+    #     func=mdp.reset_robot_position,
+    #     mode="reset",
+    #     params={
+    #         "goal_command_generator_name": "sfm_obstacle_target_pos",
+    #         "asset_cfg": SceneEntityCfg("sfm_obstacle"),
+    #         "yaw_range": (-3.14, 3.14),
+    #     }
+    # )
+    # -----------------------------------------
 
     # TODO curriculum spawning
+    reset_base = EventTerm(
+        func=mdp.reset_robot_position_plr,
+        mode="reset",
+        params={
+            # "additive_heading_range": {"yaw": (-1.0, +1.0)},
+            "additive_heading_range": {"yaw": (-3.14, 3.14)},
+            "command_name": "robot_goal",
+        },
+    )
     # reset_base = EventTerm(
     #     func=mdp.reset_robot_position,
     #     mode="reset",
     #     params={
     #         # "additive_heading_range": {"yaw": (-1.0, +1.0)},
-    #         "additive_heading_range": {"yaw": (-3.14, 3.14)},
-    #         "command_name": "robot_goal",
+    #         "yaw_range": (-3.14, 3.14),
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "goal_command_generator_name": "robot_goal",
     #     },
     # )
-    reset_base = EventTerm(
-        func=mdp.reset_robot_position,
-        mode="reset",
-        params={
-            # "additive_heading_range": {"yaw": (-1.0, +1.0)},
-            "yaw_range": (-3.14, 3.14),
-            "asset_cfg": SceneEntityCfg("robot"),
-            "goal_command_generator_name": "robot_goal",
-        },
-    )
 
     reset_robot_joints = EventTerm(
         func=mdp.reset_joints_by_scale,
@@ -608,6 +667,17 @@ class TerminationsCfg:
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
     # )
+
+    illegal_contact = DoneTerm(
+        func=mdp.illegal_contact,
+        params={
+            "sensor_cfg": SceneEntityCfg(
+                name="contact_forces",
+                body_names=["base", ".*THIGH", ".*HIP",]  # "base", ".*THIGH", ".*HIP", ".*SHANK",
+            ),
+            "threshold": 1.0,
+        },
+    )
 
     goal_reached = DoneTerm(
         func=mdp.at_goal,
@@ -701,8 +771,8 @@ class SFMBaseEnvCfg(ManagerBasedRLEnvCfg):
             history_length=1,
             # mesh_prim_paths=["/World/ground", self.scene.obstacle.prim_path],
             visualizer_cfg=MY_RAY_CASTER_MARKER_CFG.replace(prim_path="/Visuals/RayCaster"),
-            # mesh_prim_paths=["/World/ground", "/World/envs/env_.*/SFM_Obstacle"], # "{ENV_REGEX_NS}/Obstacle",self.scene.obstacle.prim_path
-            mesh_prim_paths=["/World/ground"], # TODO add the obstacles in the lidar mesh_prim_path
+            mesh_prim_paths=["/World/ground", "/World/envs/env_.*/SFM_Obstacle"],  # self.scene.sfm_obstacle.prim_path, "/World/envs/env_.*/SFM_Obstacle", "{ENV_REGEX_NS}/SFM_Obstacle", self.scene.obstacle.prim_path
+            # mesh_prim_paths=["/World/ground"], # TODO add the obstacles in the lidar mesh_prim_path
             track_mesh_transforms=True,
             # max_meshes=32,
             # mesh_ids_to_keep=[0],  # terrain id

@@ -125,21 +125,6 @@ gym.register(
     },
 )
 
-##########################################
-# SFM Obstacles Tasks
-##########################################
-
-# SFM obstacles PPO BetaCompressed 
-gym.register(
-    id="Isaac-CrowdNavigation-Teacher-SFMObs-BetaCompress-Anymal-D-v0",
-    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDSFMCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOBaseCfg,
-    },
-)
-
 # # staitc obstacles with heightscan
 # gym.register(
 #     id="Isaac-CrowdNavigation-Teacher-StatObs-Height-Anymal-D-v0",
@@ -207,5 +192,32 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherEnvCfg,
         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherBaseCfg,
+    },
+)
+
+
+##########################################
+# SFM Obstacles Tasks
+##########################################
+
+# SFM obstacles PPO BetaCompressed 
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObs-BetaCompress-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDSFMCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOBaseCfg,
+    },
+)
+
+# SFM obstacles PPO Conv NoGru
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObs-Conv_NoGru-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDSFMCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOSFMNoGruConvCfg,
     },
 )
