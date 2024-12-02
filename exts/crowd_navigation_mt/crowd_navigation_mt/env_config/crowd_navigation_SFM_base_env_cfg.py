@@ -336,7 +336,7 @@ class CommandsCfg:
         # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
         asset_name="robot",
         resampling_time_range=(100000.0, 100000.0),  # resample only on reset
-        debug_vis=True,
+        debug_vis=False,
         radius=1.0,
         terrain_analysis=mdp.TerrainAnalysisCfg(
             raycaster_sensor="lidar",
@@ -655,14 +655,117 @@ class RewardsCfg:
 
 
 @configclass
+class TeacherRewardsCfg:
+    """Reward terms for the MDP."""
+
+    # -- tasks
+    goal_reached = RewTerm(
+        func=mdp.goal_reached,  # reward is high to compensate for reset penalty
+        weight=50.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
+        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD},
+    )
+
+    goal_progress = RewTerm(
+        func=mdp.goal_progress,
+        weight=2.0,  # Dense Reward of [0.0, 0.025]  --> Max Episode Reward: 0.25
+    )
+
+    goal_closeness = RewTerm(
+        func=mdp.goal_closeness,
+        weight=1.0,  # Dense Reward of [0.0, 0.025]  --> Max Episode Reward: 0.25
+    )
+
+    # stage_cleared = RewTerm(
+    #     func=mdp.stage_cleared,
+    #     weight=50,  # Sparse Reward
+    # )
+
+    # near_goal_stability = RewTerm(
+    #     func=mdp.near_goal_stability,
+    #     weight=1.0,  # Dense Reward of [0.0, 0.1] --> Max Episode Reward: 1.0
+    #     params={"threshold": 0.5},
+    # )
+
+    # # -- penalties
+
+    # lateral_movement = RewTerm(
+    #     func=mdp.lateral_movement,
+    #     weight=-0.01,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
+
+    # backward_movement = RewTerm(
+    #     func=mdp.backwards_movement,
+    #     weight=-0.01,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    # )
+
+    # episode_termination = RewTerm(
+    #     func=mdp.is_terminated,
+    #     weight=-500.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
+    # )
+
+    action_rate_l2 = RewTerm(
+        func=mdp.action_rate_l2, 
+        weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
+    )
+
+    # took out because Observation can not handle history yet
+    # no_robot_movement = RewTerm(
+    #     func=mdp.no_robot_movement_2d,
+    #     weight=-5,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    # )
+
+    #  penalty for being close to the obstacles
+    close_to_obstacle = RewTerm(
+        func=mdp.obstacle_distance,
+        weight=-2.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+        params={"threshold": 1.5, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar")},
+    )
+
+    # TODO add penality for obstacles being in front of the robot
+
+    obstacle_in_front_narrow = RewTerm(
+        func=mdp.obstacle_distance_in_front,
+        weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+        params={"threshold": 2.0, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 30.0},
+    )
+
+    obstacle_in_front_wide = RewTerm(
+        func=mdp.obstacle_distance_in_front,
+        weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+        params={"threshold": 1.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60.0},
+    )
+
+    # far_from_obstacle = RewTerm(
+    #     func=mdp.obstacle_distance,
+    #     weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    #     params={"threshold": 1, "dist_std": 5, "dist_sensor": SceneEntityCfg("lidar")},
+    # )
+   
+
+    # # penalty for colliding with obstacles
+    # undesired_contacts = RewTerm(
+    #     func=mdp.undesired_contacts,
+    #     weight=-200.0,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*THIGH", ".*HIP", ".*SHANK", "base"]),
+    #         "threshold": 0.5,
+    #     },
+    # )
+
+    # # reward for being alive
+    # is_alive_reward = RewTerm(
+    #     func=mdp.is_alive, weight=+1e-1  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
+    # )
+
+@configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    base_contact = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
-    )
+    # base_contact = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+    # )
     # thigh_contact = DoneTerm(
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
@@ -687,6 +790,7 @@ class TerminationsCfg:
             "speed_threshold": SPEED_THRESHOLD,
             "goal_cmd_name": "robot_goal",
         },
+        # TODO: @vairaviv check what this timeout does exactly
         time_out=True,
     )
 
@@ -728,7 +832,8 @@ class SFMBaseEnvCfg(ManagerBasedRLEnvCfg):
     actions: ActionsCfg = ActionsCfg()
     commands: CommandsCfg = CommandsCfg()
     # MDP settings
-    rewards: RewardsCfg = RewardsCfg()
+    # rewards: RewardsCfg = RewardsCfg()
+    rewards : TeacherRewardsCfg = TeacherRewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
     # curriculum: CurriculumCfg = CurriculumCfg()
