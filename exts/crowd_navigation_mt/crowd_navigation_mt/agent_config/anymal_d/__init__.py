@@ -221,3 +221,27 @@ gym.register(
         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOSFMNoGruConvCfg,
     },
 )
+
+# SFM obstacles PPO Conv NoGru with new AnymalD asset, base includes the hips aswell
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObs-Conv_NoGru-Anymal-D-v1",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtBaseSFMCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOSFMNoGruConvCfg,
+    },
+)
+
+# SFM obstacles PPO Conv Temporal
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObs-Conv_Temp-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDSFMCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOBaseBetaSFMLidarConvCfg,
+    },
+)
+
+

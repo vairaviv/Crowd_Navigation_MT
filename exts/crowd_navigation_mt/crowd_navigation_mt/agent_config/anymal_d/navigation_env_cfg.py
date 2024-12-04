@@ -30,6 +30,8 @@ from crowd_navigation_mt.env_config.crowd_navigation_SFM_base_env_cfg import SFM
 
 from omni.isaac.lab_assets.anymal import ANYMAL_D_CFG  # isort: skip
 
+from crowd_navigation_mt.assets import ANYMAL_D_EXT_BASE_CFG
+
 # ISAAC_GYM_JOINT_NAMES are already defined in the base class, they are probably also robot specific...
 
 
@@ -149,6 +151,31 @@ class AnymalDSFMCfg(SFMBaseEnvCfg):
         super().__post_init__()
         # switch robot to anymal-d
         self.scene.robot = ANYMAL_D_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+        self.scene.robot.init_state.joint_pos = {
+            "LF_HAA": -0.13859,
+            "LH_HAA": -0.13859,
+            "RF_HAA": 0.13859,
+            "RH_HAA": 0.13859,
+            ".*F_HFE": 0.480936,  # both front HFE
+            ".*H_HFE": -0.480936,  # both hind HFE
+            ".*F_KFE": -0.761428,
+            ".*H_KFE": 0.761428,
+        }
+        self.scene.robot.spawn.scale = [1.15, 1.15, 1.15]
+
+        #change history length
+        # self.observations.policy.lidar_distances_history.history_length = 10
+
+        
+
+@configclass
+class AnymalDExtBaseSFMCfg(SFMBaseEnvCfg):
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        # switch robot to anymal-d
+        self.scene.robot = ANYMAL_D_EXT_BASE_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
         self.scene.robot.init_state.joint_pos = {
             "LF_HAA": -0.13859,
