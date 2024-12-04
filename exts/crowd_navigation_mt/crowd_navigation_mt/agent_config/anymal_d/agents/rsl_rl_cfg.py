@@ -29,11 +29,11 @@ if TYPE_CHECKING:
 
 NON_LIDAR_DIM = 2 + 8  # commanded pos, proprioception
 HISTORY_LENGTH_STAT = 1 # TODO not sure what this is used for...  
-HISTORY_LENGTH_DYN = 10 # observation length for the positions
+HISTORY_LENGTH_DYN = 1 # observation length for the positions
 DIM_LIDAR = 360 # num of rays for 1D lidar otherwise num_of_rays_in_plane * num_of_planes
 LIDAR_EXTRA_DIM = 3   # history length 5
 ACT_DIM = 2 # observed action dimension
-HISTORY_LENGTH_ACT = 10 # observation length for the actions
+HISTORY_LENGTH_ACT = 0 # observation length for the actions
 # 875631
 
 
@@ -542,3 +542,111 @@ class PPOBaseBetaCompressTeacherDynObsHist(PPOBaseBetaCompressCfg):
         ]
 
 
+######################################################################
+# PPO - SFM configs
+######################################################################
+
+SFM_NON_LIDAR_DIM = 2 + 8
+SFM_LIDAR_DIM = 360
+SFM_HISTORY_LENGTH_LIDAR = 10
+SFM_LIDAR_EXTRA_DIM = 3
+
+@configclass
+class PPOBaseBetaSFMLidarConvGruCfg(RslRlOnPolicyRunnerCfg):
+    num_steps_per_env = 24
+    max_iterations = 10000
+    save_interval = 50
+    experiment_name = "crowd_navigation"
+    empirical_normalization = False
+    seed = 12345
+    policy: RslRlPpoActorCriticBetaRecurrentLidarCnnCfg = RslRlPpoActorCriticBetaRecurrentLidarCnnCfg(
+        non_lidar_dim=SFM_NON_LIDAR_DIM,  # NON_LIDAR_DIM,
+        lidar_dim=SFM_LIDAR_DIM,  # DIM_LIDAR,
+        num_lidar_channels=SFM_HISTORY_LENGTH_LIDAR,  # HISTORY_LENGTH_STAT,
+        lidar_extra_dim=SFM_LIDAR_EXTRA_DIM * SFM_HISTORY_LENGTH_LIDAR, # LIDAR_EXTRA_DIM,
+        non_lidar_layer_dims=[64],
+        lidar_compress_conv_layer_dims=[8, 16, 16],
+        lidar_compress_conv_kernel_sizes=[5, 5, 5],
+        lidar_compress_conv_strides=[2, 2, 2],
+        lidar_compress_conv_to_mlp_dims=[512, 256],
+        lidar_extra_in_dims=[16],
+        lidar_merge_mlp_dims=[256],
+        history_processing_mlp_dims=[256],
+        out_layer_dims=[256, 256, 128],  # planning net
+        gru_dim=512,
+        gru_layers=1,
+        activation="elu",
+        beta_initial_logit=0.5,
+        beta_initial_scale=5.0,
+    )
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.005,
+        num_learning_epochs=5,
+        num_mini_batches=4,
+        learning_rate=1.0e-3,
+        schedule="adaptive",
+        gamma=0.99,
+        lam=0.95,
+        desired_kl=0.01,
+        max_grad_norm=1.0,
+    )
+
+@configclass
+class PPOSFMNoGruConvCfg(PPOBaseBetaSFMLidarConvGruCfg):
+    run_name = "Static_NoGru"
+    wandb_project = "crowd_navigation_static_gru_test"
+    wandb_name = "Static_NoGru"
+    # strict_loading = False
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.max_iterations = NUM_ITERATIONS
+        self.policy.gru_layers = 0
+
+
+@configclass
+class PPOBaseBetaSFMLidarConvCfg(RslRlOnPolicyRunnerCfg):
+    num_steps_per_env = 24
+    max_iterations = 10000
+    save_interval = 50
+    experiment_name = "crowd_navigation"
+    empirical_normalization = False
+    seed = 12345
+    policy: RslRlPpoActorCriticBetaLidarTemporalCfg = RslRlPpoActorCriticBetaLidarTemporalCfg(
+        non_lidar_dim=NON_LIDAR_DIM,
+        lidar_dim=DIM_LIDAR,
+        # num_lidar_channels=HISTORY_LENGTH_STAT,
+        lidar_extra_dim=LIDAR_EXTRA_DIM,
+        history_length=SFM_HISTORY_LENGTH_LIDAR,
+        non_lidar_layer_dims=[64],
+        lidar_compress_layer_dims=[8, 16, 16],
+        # lidar_compress_kernel_sizes=[5, 5, 5],
+        # lidar_compress_conv_strides=[2, 2, 2],
+        # lidar_compress_conv_to_mlp_dims=[512, 256],
+        lidar_extra_in_dims=[16],
+        lidar_extra_merge_mlp_dims=[256],
+        history_processing_mlp_dims=[256],
+        out_layer_dims=[256, 256, 128],  # planning net
+        # gru_dim=512,
+        # gru_layers=1,
+        activation="elu",
+        beta_initial_logit=0.5,
+        beta_initial_scale=5.0,
+    )
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.005,
+        num_learning_epochs=5,
+        num_mini_batches=4,
+        learning_rate=1.0e-3,
+        schedule="adaptive",
+        gamma=0.99,
+        lam=0.95,
+        desired_kl=0.01,
+        max_grad_norm=1.0,
+    )

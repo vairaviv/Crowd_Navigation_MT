@@ -253,7 +253,7 @@ class CommandsCfg:
     # Dynamic obstacle's Commands
     ##
 
-    # target pos for the obstacle consecutive goal samplings from Nav-Suite
+    # # target pos for the obstacle consecutive goal samplings from Nav-Suite
     sfm_obstacle_target_pos = ConsecutiveGoalCommandCfg(
         asset_name="sfm_obstacle",
         resampling_time_range=(10000000.0, 10000000.0), 
@@ -265,7 +265,7 @@ class CommandsCfg:
         resample_distance_threshold=0.5,
     )
     # --------------------------------------------------------
-    # target pos for the obstacle random goal samplings from Nav-Suite
+    # # target pos for the obstacle random goal samplings from Nav-Suite
     # sfm_obstacle_target_pos = GoalCommandCfg(
     #     asset_name="sfm_obstacle",
     #     resampling_time_range=(10.0, 20.0), 
@@ -718,7 +718,7 @@ class TeacherRewardsCfg:
     close_to_obstacle = RewTerm(
         func=mdp.obstacle_distance,
         weight=-2.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 1.5, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar")},
+        params={"threshold": 2.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar")},
     )
 
     # TODO add penality for obstacles being in front of the robot
@@ -743,19 +743,19 @@ class TeacherRewardsCfg:
    
 
     # # penalty for colliding with obstacles
-    # undesired_contacts = RewTerm(
-    #     func=mdp.undesired_contacts,
-    #     weight=-200.0,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*THIGH", ".*HIP", ".*SHANK", "base"]),
-    #         "threshold": 0.5,
-    #     },
-    # )
+    undesired_contacts = RewTerm(
+        func=mdp.undesired_contacts,
+        weight=-200.0,
+        params={
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*THIGH", ".*HIP", ".*SHANK", "base"]),
+            "threshold": 0.5,
+        },
+    )
 
-    # # reward for being alive
-    # is_alive_reward = RewTerm(
-    #     func=mdp.is_alive, weight=+1e-1  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
-    # )
+    # reward for being alive
+    is_alive_reward = RewTerm(
+        func=mdp.is_alive, weight=+1e-1  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
+    )
 
 @configclass
 class TerminationsCfg:
@@ -776,7 +776,7 @@ class TerminationsCfg:
         params={
             "sensor_cfg": SceneEntityCfg(
                 name="contact_forces",
-                body_names=["base", ".*THIGH", ".*HIP",]  # "base", ".*THIGH", ".*HIP", ".*SHANK",
+                body_names=["base"]  # "base", ".*THIGH", ".*HIP", ".*SHANK",
             ),
             "threshold": 1.0,
         },
