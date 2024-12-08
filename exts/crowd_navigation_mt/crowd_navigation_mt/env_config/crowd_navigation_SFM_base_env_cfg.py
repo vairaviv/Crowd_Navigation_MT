@@ -743,19 +743,19 @@ class TeacherRewardsCfg:
    
 
     # # penalty for colliding with obstacles
-    undesired_contacts = RewTerm(
-        func=mdp.undesired_contacts,
-        weight=-200.0,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*THIGH", ".*HIP", ".*SHANK", "base"]),
-            "threshold": 0.5,
-        },
-    )
+    # undesired_contacts = RewTerm(
+    #     func=mdp.undesired_contacts,
+    #     weight=-200.0,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*THIGH", ".*HIP", ".*SHANK", "base"]),
+    #         "threshold": 0.5,
+    #     },
+    # )
 
-    # reward for being alive
-    is_alive_reward = RewTerm(
-        func=mdp.is_alive, weight=+1e-1  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
-    )
+    # # reward for being alive
+    # is_alive_reward = RewTerm(
+    #     func=mdp.is_alive, weight=+1e-1  # Dense Reward of [-1e-3, 0.0] --> Max Episode Penalty: -???
+    # )
 
 @configclass
 class TerminationsCfg:

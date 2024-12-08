@@ -130,7 +130,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         env, agent_cfg.to_dict(), 
         log_dir=log_dir, 
         # TODO check why the OnPolicyRunner doesnt accept device 
-        # device=agent_cfg.device
+        device=agent_cfg.device
     )
     # write git state to logs
     runner.add_git_repo_to_log(__file__)
