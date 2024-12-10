@@ -336,7 +336,7 @@ class CommandsCfg:
         # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
         asset_name="robot",
         resampling_time_range=(100000.0, 100000.0),  # resample only on reset
-        debug_vis=False,
+        debug_vis=True,
         radius=1.0,
         terrain_analysis=mdp.TerrainAnalysisCfg(
             raycaster_sensor="lidar",
@@ -504,6 +504,7 @@ class ObservationsCfg:
             func=mdp.LidarHistory,
             params={"method": "get_history"},
             history_length=10,
+            history_time_span=5,
             # decimation=1,
             sensor_cfg=SceneEntityCfg("lidar"),
             return_pose_history=True,

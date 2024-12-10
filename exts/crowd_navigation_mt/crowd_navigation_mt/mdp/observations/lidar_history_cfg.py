@@ -38,9 +38,15 @@ class LidarHistoryTermCfg(ObservationTermCfg):
     """
 
     history_length: int = 1
+    "num entries of the history"
+
+    history_time_span: int = 1
+    "time span for the history of the lidar distances"
     
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("lidar")
     
     return_pose_history: bool = True
     
     decimation: int = 1
+
+    

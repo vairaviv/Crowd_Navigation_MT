@@ -16,6 +16,7 @@ from crowd_navigation_mt.utils.wrappers.rsl_rl import (
     RslRlPpoActorCriticBetaRecurrentLidarCfg,
     RslRlPpoActorCriticBetaRecurrentLidarCnnCfg,
     RslRlPpoActorCriticBetaRecurrentLidarHeightCnnCfg,
+    RslRlPpoActorCriticBetaLidarCNNCfg
 )
 
 
