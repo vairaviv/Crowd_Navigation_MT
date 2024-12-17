@@ -196,6 +196,7 @@ class SFMObsSceneCfg(EmptySceneCfg):
         spawn=sim_utils.CylinderCfg(
             radius=0.35,
             height=2,
+            # rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=0.2),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=None,  # sim_utils.MassPropertiesCfg(mass=1.0),
             collision_props=sim_utils.CollisionPropertiesCfg(),
@@ -257,7 +258,7 @@ class CommandsCfg:
     sfm_obstacle_target_pos = ConsecutiveGoalCommandCfg(
         asset_name="sfm_obstacle",
         resampling_time_range=(10000000.0, 10000000.0), 
-        debug_vis=False,
+        debug_vis=True,
         terrain_analysis=TerrainAnalysisCfg(
             raycaster_sensor="sfm_obstacle_lidar",
             semantic_cost_mapping=None,
@@ -360,9 +361,11 @@ class ActionsCfg:
         use_raw_actions=True,
         observation_group="sfm_obstacle_control_obs",
         robot_visible=False, # currently not implemented still a TODO
+        robot_radius=1.5,
         debug_vis=False,
         max_sfm_velocity=0.2,
-        stat_obstacle_radius=1.5,
+        stat_obstacle_radius=1.0,
+        dyn_obstacle_radius=1.0,
         command_term_name="sfm_obstacle_target_pos",
         obstacle_sensor="sfm_obstacle_lidar",
     )
@@ -599,64 +602,8 @@ class EventCfg:
         },
     )
 
-
 @configclass
 class RewardsCfg:
-    """Reward terms for the MDP."""
-
-    # -- tasks
-    goal_reached = RewTerm(
-        func=mdp.goal_reached,  # reward is high to compensate for reset penalty
-        weight=205.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
-        params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD},
-    )
-    goal_progress = RewTerm(
-        func=mdp.goal_progress,
-        weight=0.5,  # Dense Reward of [0.0, 0.025]  --> Max Episode Reward: 0.25
-    )
-    near_goal_stability = RewTerm(
-        func=mdp.near_goal_stability,
-        weight=1.0,  # Dense Reward of [0.0, 0.1] --> Max Episode Reward: 1.0
-        params={"threshold": 0.5},
-    )
-
-    # -- penalties
-    lateral_movement = RewTerm(
-        func=mdp.lateral_movement,
-        weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    backward_movement = RewTerm(
-        func=mdp.backwards_movement,
-        weight=-0.1,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    episode_termination = RewTerm(
-        func=mdp.is_terminated,
-        weight=-200.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
-    )
-    action_rate_l2 = RewTerm(
-        func=mdp.action_rate_l2, 
-        weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
-    )
-    """
-    no_robot_movement = RewTerm(
-        func=mdp.no_robot_movement,
-        weight=-0.1,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"goal_distance_thresh": 0.5},
-    )
-    """
-
-    # undesired_contacts = RewTerm(
-    #     func=mdp.undesired_contacts,
-    #     weight=-1.0,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*THIGH"), "threshold": 1.0},
-    # )
-    # # -- optional penalties
-    # flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.0)
-    # dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
-
-
-@configclass
-class TeacherRewardsCfg:
     """Reward terms for the MDP."""
 
     # -- tasks
@@ -834,7 +781,7 @@ class SFMBaseEnvCfg(ManagerBasedRLEnvCfg):
     commands: CommandsCfg = CommandsCfg()
     # MDP settings
     # rewards: RewardsCfg = RewardsCfg()
-    rewards : TeacherRewardsCfg = TeacherRewardsCfg()
+    rewards : RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
     # curriculum: CurriculumCfg = CurriculumCfg()

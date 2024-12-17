@@ -255,4 +255,28 @@ gym.register(
     },
 )
 
+# SFM obstacles PPO CNN
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObs-2DCNN-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtBaseSFMCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_sfm_cfg.PPOBaseBetaSFMLidar2DCNNCfg,
+    },
+)
+
+
+# SFM obstacles PPO CNN Terrain Curriculum
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObsCurr-CNN-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtSFMCurrCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_sfm_cfg.PPOBaseBetaSFMLidarCNNCfg,
+    },
+)
+
+
 

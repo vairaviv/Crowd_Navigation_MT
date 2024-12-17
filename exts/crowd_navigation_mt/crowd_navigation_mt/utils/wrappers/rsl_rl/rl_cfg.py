@@ -645,3 +645,59 @@ class RslRlPpoActorCriticBetaLidarCNNCfg:
 
     activation: str = MISSING
     """The activation function for the actor and critic networks."""
+
+
+@configclass
+class RslRlPpoActorCriticBetaLidar2DCNNCfg:
+    """Configuration for the PPO actor-critic networks. Actor and critic networks have the same architecture."""
+
+    class_name: str = "ActorCriticBetaLidar2DCNN"
+    """The policy class name. Default is ActorCritic."""
+
+    beta_initial_logit: float = MISSING
+    """The initial mean of the beta distribution."""
+
+    beta_initial_scale: float = MISSING
+    """The initial scale of the beta distribution."""
+
+    target_dim: int = MISSING
+    """The target position dimensions."""
+
+    cpg_dim: int = MISSING
+    """The cpg state dimensions."""
+
+    lidar_dim: int = MISSING
+    """The lidar dimensions."""
+
+    lidar_extra_dim: int = MISSING
+    """The extra lidar dimensions, ie relative position."""
+
+    lidar_history_dim: int = MISSING
+    """The number of history timesteps in the lidar input."""
+
+    target_cpg_layer_dim: list[int] = MISSING
+    """The hidden dimensions of the target position and cpg state."""
+
+    lidar_cnn_channel_dim: list[int] = MISSING
+    """The hidden dimensions of the lidar compress cnn layers, shared across history."""
+
+    lidar_cnn_kernel_sizes: list[int] = MISSING
+    """The kernel sizes of the lidar compress cnn layers, shared across history."""
+
+    lidar_cnn_strides: list[int] = MISSING
+    """The strides of the lidar compress cnn layers, shared across history."""
+
+    lidar_cnn_to_mlp_layer_dim: list[int] = MISSING
+    """The hidden dimensions of the lidar compress cnn to mlp layers, shared across history."""
+
+    lidar_extra_mlp_layer_dim: list[int] = MISSING
+    """The hidden dimensions of the lidar extra input layers, shared across history."""
+
+    lidar_merge_mlp_layer_dim: list[int] = MISSING
+    """The hidden dimensions of the lidar + extras merger mlp."""
+
+    out_layer_dim: list[int] = MISSING
+    """The hidden dimensions of the output layers."""
+
+    activation: str = MISSING
+    """The activation function for the actor and critic networks."""

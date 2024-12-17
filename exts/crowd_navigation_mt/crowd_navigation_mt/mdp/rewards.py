@@ -198,6 +198,7 @@ def obstacle_distance(
     # extract the used quantities (to enable type-hinting)
     sensor: RayCaster = env.scene.sensors[dist_sensor.name]
     distances = sensor.data.distances
+    # @vairaviv this is needed if the lidar distances are set to 0.0 if inf in the lidar raycaster
     valid = distances > 1e-3
     filtered_data = torch.where(valid, distances, torch.tensor(float("inf")))
     min_values = torch.min(filtered_data, dim=1)[0]
