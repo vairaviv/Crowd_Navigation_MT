@@ -196,7 +196,7 @@ class SFMObsSceneCfg(EmptySceneCfg):
         spawn=sim_utils.CylinderCfg(
             radius=0.35,
             height=2,
-            # rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=0.2),
+            # rigid_props=sim_utils.RigidBodyPropertiesCfg(max_depenetration_velocity=0.005),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=None,  # sim_utils.MassPropertiesCfg(mass=1.0),
             collision_props=sim_utils.CollisionPropertiesCfg(),
@@ -363,7 +363,7 @@ class ActionsCfg:
         robot_visible=False, # currently not implemented still a TODO
         robot_radius=1.5,
         debug_vis=False,
-        max_sfm_velocity=0.2,
+        max_sfm_velocity=1.0,
         stat_obstacle_radius=1.0,
         dyn_obstacle_radius=1.0,
         command_term_name="sfm_obstacle_target_pos",

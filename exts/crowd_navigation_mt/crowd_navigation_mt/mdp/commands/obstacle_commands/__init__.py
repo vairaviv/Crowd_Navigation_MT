@@ -1,2 +1,5 @@
 from .obst_goal_command import ObstGoalCommand
 from .obst_goal_command_cfg import ObstGoalCommandCfg
+from .level_consecutive_goal_command import LvlConsecutiveGoalCommand
+from .level_consecutive_goal_command_cfg import LvlConsecutiveGoalCommandCfg
+

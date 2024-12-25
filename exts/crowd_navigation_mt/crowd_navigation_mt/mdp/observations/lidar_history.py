@@ -143,8 +143,8 @@ class LidarHistory(ManagerTermBase):
             # distances = torch.linalg.vector_norm(sensor.data.ray_hits_w, dim=-1)
             distances = sensor.data.distances
             # TODO: @vairaviv before all the infinite sensor measurements were set to 0.0, why?
-            # distances[torch.isinf(distances)] = 0.0
-            distances[torch.isinf(distances)] = sensor.cfg.max_distance
+            distances[torch.isinf(distances)] = 0.0
+            # distances[torch.isinf(distances)] = sensor.cfg.max_distance
 
             self.lidar_buffer[:, -1, :] = distances  # lidar distances
             self.position_buffer[:, -1, :] = sensor.data.pos_w  # sensor positions world frame

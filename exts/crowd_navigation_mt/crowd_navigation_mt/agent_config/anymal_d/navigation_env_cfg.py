@@ -18,6 +18,8 @@ from crowd_navigation_mt.env_config.crowd_navigation_teacher_dyn_env_cfg import 
 from crowd_navigation_mt.env_config.crowd_navigation_flat_env_cfg import CrowdNavigationFlatEnvCfg
 
 from crowd_navigation_mt.env_config.crowd_navigation_SFM_base_env_cfg import SFMBaseEnvCfg
+
+from crowd_navigation_mt.env_config.crowd_navigation_SFM_curr_env import SFMCurrEnvCfg
 # from crowd_navigation_mt.env_config.crowd_navigation_recording_env_cfg import (
 #     CrowdNavigationRecordingEnvCfg,
 # )
@@ -171,6 +173,29 @@ class AnymalDSFMCfg(SFMBaseEnvCfg):
 
 @configclass
 class AnymalDExtBaseSFMCfg(SFMBaseEnvCfg):
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        # switch robot to anymal-d
+        self.scene.robot = ANYMAL_D_EXT_BASE_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+        self.scene.robot.init_state.joint_pos = {
+            "LF_HAA": -0.13859,
+            "LH_HAA": -0.13859,
+            "RF_HAA": 0.13859,
+            "RH_HAA": 0.13859,
+            ".*F_HFE": 0.480936,  # both front HFE
+            ".*H_HFE": -0.480936,  # both hind HFE
+            ".*F_KFE": -0.761428,
+            ".*H_KFE": 0.761428,
+        }
+        self.scene.robot.spawn.scale = [1.15, 1.15, 1.15]
+
+        #change history length
+        # self.observations.policy.lidar_distances_history.history_length = 10
+
+@configclass
+class AnymalDExtSFMCurrCfg(SFMCurrEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
