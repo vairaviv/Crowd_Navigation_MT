@@ -40,7 +40,7 @@ SFM_LIDAR_EXTRA_DIM = 3
 class PPOBaseBetaSFMLidarCNNCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 10000
-    save_interval = 50
+    save_interval = 100
     experiment_name = "crowd_navigation"
     empirical_normalization = False
     seed = 12345
@@ -61,7 +61,7 @@ class PPOBaseBetaSFMLidarCNNCfg(RslRlOnPolicyRunnerCfg):
         lidar_merge_mlp_layer_dim=[256],
         out_layer_dim=[256, 256, 128],  # navigation network
         activation="elu",
-        
+        permute_obs=False,
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,

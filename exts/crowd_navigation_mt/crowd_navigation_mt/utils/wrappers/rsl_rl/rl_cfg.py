@@ -646,6 +646,9 @@ class RslRlPpoActorCriticBetaLidarCNNCfg:
     activation: str = MISSING
     """The activation function for the actor and critic networks."""
 
+    permute_obs: bool = MISSING
+    """if true the observations are permuted, lidar history vs lidar distances"""
+
 
 @configclass
 class RslRlPpoActorCriticBetaLidar2DCNNCfg:
