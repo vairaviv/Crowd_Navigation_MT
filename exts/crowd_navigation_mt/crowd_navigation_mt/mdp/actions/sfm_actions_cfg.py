@@ -40,5 +40,7 @@ class SFMActionCfg(ActionTermCfg):
     """Radius to account a robot into social force model"""
     stat_obstacle_radius: float = 1.0
     """Radius to account a static obstacle into social force model"""
+    dyn_obstacle_radius: float = 1.5
+    """Radius to account a static obstacle into social force model"""
     max_sfm_velocity: float = 1.0
     """velocity multiplied to the normed attraction force vector"""

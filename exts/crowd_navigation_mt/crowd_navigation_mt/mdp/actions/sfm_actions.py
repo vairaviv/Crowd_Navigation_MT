@@ -23,6 +23,7 @@ from omni.isaac.lab.markers.config import CUBOID_MARKER_CFG, BLUE_ARROW_X_MARKER
 
 if TYPE_CHECKING:
     from .sfm_actions_cfg import SFMActionCfg
+    from crowd_navigation_mt.mdp.commands import RobotGoalCommand, LvlConsecutiveGoalCommand
 
 
 
@@ -34,8 +35,6 @@ class SFMAction(ActionTerm):
     _asset: RigidObject
 
     def __init__(self, cfg: SFMActionCfg, env: ManagerBasedRLEnv):
-        # TODO check why i can not call super.__init__ throws following error:
-        # TypeError: descriptor '__init__' requires a 'super' object but received a 'SFMActionCfg'
         super().__init__(cfg, env)
 
         # prepare buffers
@@ -89,6 +88,36 @@ class SFMAction(ActionTerm):
         """Apply low-level actions for the simulator to the physics engine. This functions is called with the
         simulation frequency of 200Hz. We run the low-level controller for the obstacles at 50 Hz and therefore we need
         to decimate the actions."""
+        # just happens at start to spawn obstacles in the expected terrain level and type
+        num_agents = 5
+        if self._env._sim_step_counter == 1: # self._env.common_step_counter == 0:
+            command: LvlConsecutiveGoalCommand = self._env.command_manager._terms["sfm_obstacle_target_pos"]
+            obstacle_pos = torch.ones(self._asset.data.body_pos_w.shape, device=self.device)
+            start_id =0
+            for level in range(command.num_levels):
+                for _type in range(command.num_types):
+                    end_id = start_id + (_type+1) * num_agents
+                    #TODO: @vairviv quick hack to handle cases where the amount of envs is smaller than needed
+                    if end_id > self.num_envs:
+                        print("Not enough env spawned to fill up the whole terrain!")
+                        end_id = start_id
+                        break
+                    obstacle_pos[start_id:end_id, :] = command.grouped_points[level][_type][:(_type + 1) * num_agents, :].unsqueeze(1)
+                    start_id = end_id
+
+            if end_id < command.num_levels * (command.num_types * (command.num_types + 1) / 2):
+                print("Not enough env spawned to fill up the whole terrain!")
+            elif end_id < self.num_envs:
+                print("Too many dynamic obstacles, they will be spawned below the plane!")
+                # TODO: @ vairaviv just did it ugly if time maybe store them some where 
+                obstacle_pos[end_id:, :] = obstacle_pos[end_id:, :] * -2
+
+            obstacle_pos[:end_id, :, 2] = torch.ones(obstacle_pos[:end_id, :, 2].shape, device=self.device) * 1.05
+            obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
+            new_root_pose = torch.cat([obstacle_pos.squeeze(1), obstacle_quat], dim=1)
+            self._asset.write_root_pose_to_sim(new_root_pose)
+
+
 
         if self._counter % self.cfg.low_level_decimation == 0:
 
@@ -98,46 +127,57 @@ class SFMAction(ActionTerm):
 
             goal_direction = self._get_goal_directions()
             stat_obst_directions = self._get_stat_obstacle_directions()
+            sfm_obst_directions = self._get_sfm_obstacles_directions()
             # if self.cfg.robot_visible:
             #     robot_directions = self._get_robots_directions()
 
-            total_force = goal_direction - stat_obst_directions 
-            normed_total_force = total_force / torch.norm(total_force, p=2, dim=1).unsqueeze(1).expand(self.num_envs, -1)
+            total_force = goal_direction - stat_obst_directions - sfm_obst_directions 
+            normed_total_force = total_force / (torch.norm(total_force, p=2, dim=1).unsqueeze(1).expand(self.num_envs, -1) + 0.0001)
 
-            self._obstacles_actions_vel[:] = normed_total_force * self.cfg.max_sfm_velocity
+            self._obstacles_actions_vel[:] = normed_total_force * self.cfg.max_sfm_velocity 
             
         self._counter += 1
-        
 
         # when i run it with velocity the obstacle falls down, maybe due to friction, simulation limits?
-        
         # Velocity Controller
-        # self._asset.write_root_velocity_to_sim(
-        #         torch.cat(
-        #             [self._obstacles_actions_vel, torch.zeros(self.num_envs, 4, device=self.device)], dim=1
-        #             ).to(device=self.device)
-        #     )
-        
-        
-        # Position Controller
-        self._prev_obstacles_actions_pos = self._obstacles_actions_pos
-        self._obstacles_actions_pos = self._obstacles_actions_vel * self._env.step_dt / self.cfg.low_level_decimation
-        obstacle_xy_pos = self._asset.data.body_pos_w.squeeze(1)[:, :2] + self._obstacles_actions_pos
-        # obstacle_xy_pos = self._sfm_obstacles_positions_w.squeeze(1)[:, :2] + self._obstacles_actions_pos
-        
-        # fixing the z-koordinate to slightly above ground, otherwise with different command the spawn location is 
-        # defined differently w.r.t body origin and some even let the body fall through ground 
-        # in general avoids a lot of collision - simulation weird behavior
-        obstacle_pos = torch.cat([obstacle_xy_pos, torch.ones((self.num_envs,1), device=self.device)*1.05], dim=1)
-
-        # TODO @vairaviv add heading command if expanded here
+        self._asset.write_root_velocity_to_sim(
+            torch.cat(
+                [
+                    self._obstacles_actions_vel, 
+                    torch.zeros(self.num_envs, 4, device=self.device)
+                ], dim=1
+            ).to(device=self.device)
+        )
+        obstacle_pos = self._asset.data.root_pos_w
         obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
         new_root_pose = torch.cat([obstacle_pos, obstacle_quat], dim=1)
         self._asset.write_root_pose_to_sim(new_root_pose)
 
+        # self._apply_position_control()
+        
     """
     Helpers
     """
+
+    def _apply_position_control(self):
+        """Apply position control for stable obstacle movement."""
+        self._prev_obstacles_actions_pos = self._obstacles_actions_pos
+        self._obstacles_actions_pos = self._obstacles_actions_vel * self._env.step_dt / self.cfg.low_level_decimation
+
+        # fixing the z-koordinate to slightly above ground, otherwise with different command the spawn location is 
+        # defined differently w.r.t body origin and some even let the body fall through ground 
+        # in general avoids a lot of collision - simulation weird behavior
+        obstacle_xy_pos = self._asset.data.body_pos_w.squeeze(1)[:, :2] + self._obstacles_actions_pos
+        obstacle_pos = torch.cat([obstacle_xy_pos, torch.ones((self.num_envs, 1), device=self.device) * 1.05], dim=1)
+
+        # TODO @vairaviv add heading command if expanded here
+        obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
+        new_root_pose = torch.cat([obstacle_pos, obstacle_quat], dim=1)
+        # for Debug purposes, sometimes divided by zero
+        if new_root_pose.isnan().any():
+            ValueError(f"new_root_pos in NaN")
+        self._asset.write_root_pose_to_sim(new_root_pose)
+
     def _update_outdated_buffers(self):
         """Update the initialized position and velocity buffers from the simulation"""
         
@@ -153,12 +193,12 @@ class SFMAction(ActionTerm):
         # target_positions = self._env.observation_manager.compute_group(group_name=self.cfg.observation_group)[:,:2]
         current_positions = self._asset.data.root_pos_w[:, :2]
 
-        directions = target_positions-current_positions
+        directions = target_positions - current_positions
 
         distances = torch.norm(directions, dim=-1, keepdim=True)  
         normalized_directions = torch.where(
             distances > 0, directions / distances, torch.zeros_like(directions)
-        ) # linear attraction behavior
+        )  # linear attraction behavior
         return normalized_directions
     
     def _get_2d_direction(self) -> torch.tensor:
@@ -209,24 +249,54 @@ class SFMAction(ActionTerm):
         # Sum all direction vectors to get the resulting force vector
         resulting_vector = weighted_directions.sum(dim=1)
         
-        # distances_sum_per_env = filtered_distances.sum(dim=1)
-        # non_zero_distances = distances_sum_per_env > 0.0
-        # filtered_dis_normed = torch.where(
-        #     non_zero_distances.unsqueeze(dim=1).expand(self.num_envs, -1),
-        #     filtered_distances / filtered_distances.sum(dim=1).unsqueeze(dim=1).expand(self.num_envs, -1),
-        #     torch.zeros_like(filtered_distances)
-        # )
-
-        # normed_direction_vector = lidar_directions * filtered_dis_normed.unsqueeze(-1)
-
-        # resulting_vector = normed_direction_vector.sum(dim=1)
-        
         return resulting_vector * 1
-    
+
     def _get_sfm_obstacles_directions(self):
-        
-        
-        raise NotImplementedError
+        """Compute the repulsive forces due to other agents."""
+        # Get the positions and velocities of the SFM obstacles (other agents)
+        agent_positions = self._sfm_obstacles_positions_w.squeeze(1)[:, :2]  # Current positions
+        agent_velocities = self._sfm_obstacles_velocity_w.squeeze(1)[:, :2]  # Current velocities
+
+        # Current agent's position (assuming each environment has one agent being modeled)
+        current_agent_positions = self._asset.data.root_pos_w[:, :2]
+        current_agent_velocities = self._asset.data.root_vel_w[:, :2]
+
+        # Compute relative positions and distances
+        relative_positions = agent_positions.unsqueeze(1) - current_agent_positions.unsqueeze(0)
+        distances = torch.norm(relative_positions, dim=-1)
+
+        # Mask to filter out agents that are too far
+        interaction_mask = distances < self.cfg.dyn_obstacle_radius  # Interaction range
+
+        # Avoid self-interaction (if applicable)
+        self_interaction_mask = torch.eye(distances.shape[0], device=self.device).bool()
+        interaction_mask &= ~self_interaction_mask
+
+        # Apply inverse-square scaling for repulsive forces
+        non_zero = 1e-6  # Small constant to avoid division by zero
+        inv_scal_dist = torch.where(
+            interaction_mask,
+            1.0 / (distances**2 + non_zero),  # Inverse-square scaling
+            torch.zeros_like(distances),
+        )
+
+        # Normalize scaling factors per environment
+        scaling_sum_per_env = inv_scal_dist.sum(dim=1, keepdim=True)
+        normalized_scaling = torch.where(
+            scaling_sum_per_env > 0,
+            inv_scal_dist / scaling_sum_per_env,
+            torch.zeros_like(inv_scal_dist),
+        )
+
+        # Compute weighted direction vectors
+        weighted_directions = (
+            relative_positions * normalized_scaling.unsqueeze(-1)
+        )
+
+        # Sum all direction vectors to get the resulting force vector
+        resulting_force = weighted_directions.sum(dim=0)
+
+        return resulting_force 
     
     def _get_robots_directions(self):
         # TODO extend it to multiple obstacles in the environment where dim of _robots_positions dont match 

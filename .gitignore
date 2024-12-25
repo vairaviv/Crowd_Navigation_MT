@@ -20,6 +20,7 @@
 # Outputs
 **/runs/*
 **/logs/*
+**/plots/*
 **/recordings/*
 **/output/*
 **/outputs/*
@@ -34,3 +35,4 @@ _isaac_sim*
 _repo
 _build
 .lastformat
+
