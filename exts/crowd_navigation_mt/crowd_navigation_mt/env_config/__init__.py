@@ -1,3 +1,4 @@
 from .env_cfg_base import NavigationTemplateEnvCfg_DEV, NavigationTemplateEnvCfg_TRAIN, NavigationTemplateEnvCfg_PLAY
 from . import helper_configurations
+from .crowd_navigation_semantic_SFM_base_env_cfg import SFMSemanticBaseEnvCfg
 # from .crowd_navigation_stat_obs_base_env_cfg import CrowdNavigationEnvCfg

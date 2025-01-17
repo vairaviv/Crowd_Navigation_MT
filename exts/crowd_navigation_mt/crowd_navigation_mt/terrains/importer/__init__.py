@@ -1,2 +1,4 @@
 from .sfm_obstacle_importer import SFMObstacleImporter
 from .sfm_obstacle_importer_cfg import SFMObstacleImporterCfg
+from .semantic_terrain_importer import SemanticTerrainImporter
+from .semantic_terrain_importer_cfg import SemanticTerrainImporterCfg

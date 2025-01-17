@@ -27,11 +27,11 @@ from . import agents, navigation_env_cfg
 
 # flat terrain for testing
 gym.register(
-    id="Isaac-CrowdNavigation-Teacher-Flat-Anymal-D-v0",
+    id="Isaac-CrowdNavigation-Semantic-Flat-Anymal-D-v0",
     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDCrowdNavigationTeacherFlatEnvCfg,
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtSFMSemanticCfg,
         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherBaseCfg,
     },
 )
@@ -255,7 +255,7 @@ gym.register(
     },
 )
 
-# SFM obstacles PPO CNN
+# SFM obstacles PPO 2D CNN
 gym.register(
     id="Isaac-CrowdNavigation-Teacher-SFMObs-2DCNN-Anymal-D-v0",
     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
@@ -278,5 +278,30 @@ gym.register(
     },
 )
 
+# SFM obstacles PPO ConvNoGRU Terrain Curriculum
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObsCurr-ConvNoGru-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtSFMCurrCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOSFMNoGruConvCfg,
+    },
+)
 
 
+
+##########################################
+# SFM Obstacles Semantic Map Tasks
+##########################################
+
+# SFM obstacles, Semantic Map, PPO, 2D CNN
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObs-2DCNN-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtBaseSFMCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_sfm_cfg.PPOBaseBetaSFMLidar2DCNNCfg,
+    },
+)

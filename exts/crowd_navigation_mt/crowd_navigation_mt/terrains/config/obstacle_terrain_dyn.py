@@ -14,14 +14,14 @@ from omni.isaac.lab.terrains import TerrainGeneratorCfg
 SIZE = 6
 OBS_TERRAINS_DYNOBS_CFG = TerrainGeneratorCfg(
     size=(8.0, 8.0),
-    border_width=20.0,
+    border_width=1.0,
     num_rows=SIZE,  # level resolution
     num_cols=SIZE,  # parallel levels
     horizontal_scale=0.125,
     vertical_scale=0.5,
     slope_threshold=0.75,
     use_cache=False,
-    curriculum=False,
+    curriculum=True,
     difficulty_range=(0, 1),
     sub_terrains={
         "obs1": terrain_gen_plr.HfDiscreteObstaclesTerrainCfg(

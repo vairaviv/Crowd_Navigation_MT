@@ -2,3 +2,5 @@ from .rough import ROUGH_TERRAINS_CFG
 from .obstacle_terrain import OBS_TERRAINS_CFG
 from .obstacle_terrain_dyn import OBS_TERRAINS_DYNOBS_CFG
 from .dyn_obstacle_curr_terrain import DYN_CURR_OBS_TERRAIN_CFG
+from .corridor_cfg import CORRIDOR_WITH_STAT_OBS
+from .demo_semantic_terrain import DEMO_SEMANTIC_ENV_CFG
