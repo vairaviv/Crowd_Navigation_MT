@@ -66,7 +66,7 @@ class LvlConsecutiveGoalCommand(GoalCommandBaseTerm):
         pruning_tensor = torch.ones(self._analysis.points.shape[0], dtype=bool, device=self.device)
         pruning_tensor[self._analysis.isolated_points_ids] = False
 
-        # Get grid dimensions
+        # -- Get grid dimensions
         self.num_levels, self.num_types, _ = env.scene.terrain.terrain_origins.shape
 
         # Expand terrain origins to [num_levels * num_types, 3] for computation
@@ -97,7 +97,7 @@ class LvlConsecutiveGoalCommand(GoalCommandBaseTerm):
                 # Concatenate the grouped points
                 self.grouped_points[level].append(points_in_cell)
         
-        
+        # To look up close points in the terrain, not used currently but might be useful for later
         self._grouped_kd_trees = []
         for level in range(self.num_levels):
             self._grouped_kd_trees.append([])
@@ -106,14 +106,6 @@ class LvlConsecutiveGoalCommand(GoalCommandBaseTerm):
 
         if self.cfg.plot_points:
             self.plot_grouped_points()        
-
-        # # -- fit kd-tree on all the graph nodes to quickly find the closest node to the robot
-        # pruning_tensor = torch.ones(self._analysis.points.shape[0], dtype=bool, device=self.device)
-        # pruning_tensor[self._analysis.isolated_points_ids] = False
-        # self._kd_tree = KDTree(self._analysis.points[pruning_tensor].cpu().numpy())
-        # self._mapping_kd_tree_to_graph = torch.arange(pruning_tensor.sum(), device=self.device)
-        # # the cumulative sum skips over the isolated points
-        # self._mapping_kd_tree_to_graph += torch.cumsum(~pruning_tensor, 0)[pruning_tensor]
 
         # -- metrics
         self.metrics["error_pos"] = torch.zeros(self.num_envs, device=self.device)
@@ -187,7 +179,11 @@ class LvlConsecutiveGoalCommand(GoalCommandBaseTerm):
 
     def _update_metrics(self):
         """Update metrics."""
-        self.metrics["error_pos"] = torch.norm(self.pos_command_w - self.robot.data.root_pos_w[:, :3], dim=1)
+        # TODO: only the obstacles actuated are regarded here, parametrize!
+        num_tot_agent = 200
+        self.metrics["error_pos"][:num_tot_agent] = torch.norm(
+            self.pos_command_w[:num_tot_agent, :] - self.robot.data.root_pos_w[:num_tot_agent, :3], dim=1
+        )
 
     """
     Helper functions

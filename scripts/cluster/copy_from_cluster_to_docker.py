@@ -5,6 +5,7 @@ import sys
 
 LOCAL_LOG_DIR = "/scratch2/vairaviv/IsaacLab-Internal/logs/"
 CLUSTER_LOG_DIR = "/cluster/home/vairaviv/isaaclab/logs/rsl_rl/crowd_navigation/"
+CLUSTER_HOME_DIR = "cluster/home/vairaviv"
 DOCKER_LOG_DIR = "/workspace/isaaclab/logs/cluster"
 
 def get_running_docker_id():
@@ -68,6 +69,19 @@ def copy_to_docker(docker_id, local_directory, container_path):
         print(f"[ERROR] Failed to copy files to Docker container: {e}")
         sys.exit(1)
 
+def delete_cluster_directory(cluster_user, cluster_host, cluster_directory):
+    """
+    Delete a directory from the cluster after files are copied.
+    """
+    remote_path = f"{cluster_user}@{cluster_host}:{cluster_directory}"
+    try:
+        print(f"[INFO] Deleting directory {cluster_directory} on the cluster...")
+        subprocess.check_call(['ssh', f'{cluster_user}@{cluster_host}', f'rm -rf {cluster_directory}'])
+        print("[INFO] Directory deleted successfully from the cluster.")
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] Failed to delete directory from cluster: {e}")
+        sys.exit(1)
+
 def main():
     parser = argparse.ArgumentParser(description="Copy files from cluster to local machine, then to a Docker container.")
     
@@ -99,6 +113,9 @@ def main():
 
     # Copy the files from the local directory to the specified Docker container path
     copy_to_docker(args.docker_id, local_directory, docker_directory)
+
+    # Delete the directory from the cluster
+    delete_cluster_directory(args.cluster_user, args.cluster_host, cluster_directory)
 
     # # Clean up the temporary local directory
     # try:

@@ -98,6 +98,7 @@ terrain = TerrainImporterCfg(
     terrain_type="generator",
     terrain_generator=DYN_CURR_OBS_TERRAIN_CFG,  # OBS_TERRAINS_CFG,
     max_init_terrain_level=0,
+    max_init_terrain_type=0,
     collision_group=-1,
     # env_spacing=8.0,
     physics_material=sim_utils.RigidBodyMaterialCfg(
@@ -135,17 +136,7 @@ sfm_obstacle : AssetBaseCfg = SFMObstacleCfg(
 ##
 # MDP settings
 ##
-# target pos for the obstacle consecutive goal samplings depending on the level
-sfm_obstacle_target_pos = LvlConsecutiveGoalCommandCfg(
-    asset_name="sfm_obstacle",
-    resampling_time_range=(10000000.0, 10000000.0), 
-    debug_vis=True,
-    terrain_analysis=TerrainAnalysisCfg(
-        raycaster_sensor="sfm_obstacle_lidar",
-        semantic_cost_mapping=None,
-    ),
-    resample_distance_threshold=0.5,
-)
+
 
 @configclass
 class CurrCommandsCfg:
@@ -156,55 +147,33 @@ class CurrCommandsCfg:
     # Dynamic obstacle's Commands
     ##
 
-    # # target pos for the obstacle consecutive goal samplings from Nav-Suite
-    # sfm_obstacle_target_pos = ConsecutiveGoalCommandCfg(
-    #     asset_name="sfm_obstacle",
-    #     resampling_time_range=(10000000.0, 10000000.0), 
-    #     debug_vis=True,
-    #     terrain_analysis=TerrainAnalysisCfg(
-    #         raycaster_sensor="sfm_obstacle_lidar",
-    #         semantic_cost_mapping=None,
-    #     ),
-    #     resample_distance_threshold=0.5,
-    # )
-    # --------------------------------------------------------
-    # target pos for the obstacle random goal samplings from Nav-Suite
-    # sfm_obstacle_target_pos = GoalCommandCfg(
-    #     asset_name="sfm_obstacle",
-    #     resampling_time_range=(10.0, 20.0), 
-    #     debug_vis=True,
-    #     trajectory_config={
-    #         "num_paths": [100],
-    #         "max_path_length": [10.0],
-    #         "min_path_length": [2.0],
-    #     },
-    #     z_offset_spawn=0.2,
-    #     infite_sampling=True,
-    #     max_trajectories=50,  # None
-    #     traj_sampling=TrajectorySamplingCfg(
-    #         sample_points=100,  # 1000
-    #         height=1.05,
-    #         enable_saved_paths_loading=True,
-    #         terrain_analysis=TerrainAnalysisCfg(
-    #             raycaster_sensor="sfm_obstacle_lidar",
-    #             semantic_cost_mapping=None,
-    #         )
-    #     ),
-    #     reset_pos_term_name="reset_sfm_obstacle",
-    # )
-   
+    # target pos for the obstacle consecutive goal samplings depending on the level
+    sfm_obstacle_target_pos = LvlConsecutiveGoalCommandCfg(
+        asset_name="sfm_obstacle",
+        resampling_time_range=(10000000.0, 10000000.0), 
+        debug_vis=False,
+        terrain_analysis=TerrainAnalysisCfg(
+            raycaster_sensor="sfm_obstacle_lidar",
+            semantic_cost_mapping=None,
+        ),
+        resample_distance_threshold=0.5,
+    )  
    
     
     # target position for the robot, random goal sampling from the previous project, terrain Analysis doesn't work
-    robot_goal = mdp.RobotGoalCommandCfg(
+    robot_goal = mdp.RobotLvlGoalCommandCfg(
         # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
         asset_name="robot",
         resampling_time_range=(100000.0, 100000.0),  # resample only on reset
-        debug_vis=True,
+        debug_vis=False,
         radius=1.0,
-        terrain_analysis=mdp.TerrainAnalysisCfg(
+        # terrain_analysis=mdp.TerrainAnalysisCfg(
+        #     raycaster_sensor="lidar",
+        # ),  # not required for generated terrains, but for moving environments
+        terrain_analysis=TerrainAnalysisCfg(
             raycaster_sensor="lidar",
-        ),  # not required for generated terrains, but for moving environments
+            semantic_cost_mapping=None,
+        ),
         # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
         use_grid_spacing=False,
     )
@@ -378,7 +347,7 @@ class TeacherRewardsCfg:
     close_to_obstacle = RewTerm(
         func=mdp.obstacle_distance,
         weight=-2.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 2.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar")},
+        params={"threshold": 6.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar")},
     )
 
     # TODO add penality for obstacles being in front of the robot
@@ -386,13 +355,13 @@ class TeacherRewardsCfg:
     obstacle_in_front_narrow = RewTerm(
         func=mdp.obstacle_distance_in_front,
         weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 2.0, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 30.0},
+        params={"threshold": 5.0, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60.0},
     )
 
     obstacle_in_front_wide = RewTerm(
         func=mdp.obstacle_distance_in_front,
         weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 1.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60.0},
+        params={"threshold": 3.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 180.0},
     )
 
     # far_from_obstacle = RewTerm(
@@ -455,7 +424,8 @@ class SFMCurrEnvCfg(SFMBaseEnvCfg):
         self.scene.terrain = terrain
         self.scene.sfm_obstacle = sfm_obstacle
         # Consecutive Goal commands based on terrain level 
-        self.commands.sfm_obstacle_target_pos = sfm_obstacle_target_pos
+        self.commands.sfm_obstacle_target_pos = CurrCommandsCfg().sfm_obstacle_target_pos
+        # self.commands = CurrCommandsCfg()
         rewards : TeacherRewardsCfg = TeacherRewardsCfg()
         events: CurrEventCfg = CurrEventCfg()
         curriculum: CurriculumCfg = CurriculumCfg()

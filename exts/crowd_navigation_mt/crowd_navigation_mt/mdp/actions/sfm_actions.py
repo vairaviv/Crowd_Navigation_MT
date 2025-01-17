@@ -24,6 +24,7 @@ from omni.isaac.lab.markers.config import CUBOID_MARKER_CFG, BLUE_ARROW_X_MARKER
 if TYPE_CHECKING:
     from .sfm_actions_cfg import SFMActionCfg
     from crowd_navigation_mt.mdp.commands import RobotGoalCommand, LvlConsecutiveGoalCommand
+    from nav_tasks.mdp import ConsecutiveGoalCommand
 
 
 
@@ -91,31 +92,48 @@ class SFMAction(ActionTerm):
         # just happens at start to spawn obstacles in the expected terrain level and type
         num_agents = 5
         if self._env._sim_step_counter == 1: # self._env.common_step_counter == 0:
-            command: LvlConsecutiveGoalCommand = self._env.command_manager._terms["sfm_obstacle_target_pos"]
-            obstacle_pos = torch.ones(self._asset.data.body_pos_w.shape, device=self.device)
-            start_id =0
-            for level in range(command.num_levels):
-                for _type in range(command.num_types):
-                    end_id = start_id + (_type+1) * num_agents
-                    #TODO: @vairviv quick hack to handle cases where the amount of envs is smaller than needed
-                    if end_id > self.num_envs:
-                        print("Not enough env spawned to fill up the whole terrain!")
-                        end_id = start_id
-                        break
-                    obstacle_pos[start_id:end_id, :] = command.grouped_points[level][_type][:(_type + 1) * num_agents, :].unsqueeze(1)
-                    start_id = end_id
+            from crowd_navigation_mt.mdp.commands import LvlConsecutiveGoalCommand
+            from nav_tasks.mdp import ConsecutiveGoalCommand
+            command = self._env.command_manager._terms["sfm_obstacle_target_pos"]
+            
+            if isinstance(command, LvlConsecutiveGoalCommand):
+                obstacle_pos = torch.ones(self._asset.data.body_pos_w.shape, device=self.device)
+                start_id =0
+                for level in range(command.num_levels):
+                    for _type in range(command.num_types):
+                        end_id = start_id + (_type+1) * num_agents
+                        #TODO: @vairviv quick hack to handle cases where the amount of envs is smaller than needed
+                        if end_id > self.num_envs:
+                            print("Not enough env spawned to fill up the whole terrain!")
+                            end_id = start_id
+                            break
+                        # takes the first n_agent points from the grouped points in the specifc level and type
+                        obstacle_pos[start_id:end_id, :] = command.grouped_points[level][_type][:(_type + 1) * num_agents, :].unsqueeze(1)
+                        start_id = end_id
 
-            if end_id < command.num_levels * (command.num_types * (command.num_types + 1) / 2):
-                print("Not enough env spawned to fill up the whole terrain!")
-            elif end_id < self.num_envs:
-                print("Too many dynamic obstacles, they will be spawned below the plane!")
-                # TODO: @ vairaviv just did it ugly if time maybe store them some where 
-                obstacle_pos[end_id:, :] = obstacle_pos[end_id:, :] * -2
+                if end_id < command.num_levels * (command.num_types * (command.num_types + 1) / 2):
+                    print("Not enough env spawned to fill up the whole terrain!")
+                elif end_id < self.num_envs:
+                    print("Too many dynamic obstacles, they will be spawned below the plane!")
+                    # TODO: @ vairaviv just did it ugly if time maybe store them some where 
+                    obstacle_pos[end_id:, :] = obstacle_pos[end_id:, :] * -2
 
-            obstacle_pos[:end_id, :, 2] = torch.ones(obstacle_pos[:end_id, :, 2].shape, device=self.device) * 1.05
-            obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
-            new_root_pose = torch.cat([obstacle_pos.squeeze(1), obstacle_quat], dim=1)
-            self._asset.write_root_pose_to_sim(new_root_pose)
+                obstacle_pos[:end_id, :, 2] = torch.ones(obstacle_pos[:end_id, :, 2].shape, device=self.device) * 1.05
+                obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
+                new_root_pose = torch.cat([obstacle_pos.squeeze(1), obstacle_quat], dim=1)
+                self._asset.write_root_pose_to_sim(new_root_pose)
+
+            elif isinstance(command, ConsecutiveGoalCommand):
+                obstacle_pos = torch.zeros(self._asset.data.body_pos_w.shape, device=self.device)
+                rand_idx = torch.randperm(command._analysis.points.shape[0], device=self.device)[:self._asset.data.body_pos_w.shape[0]]
+                obstacle_pos[:,:, :2] = command._analysis.points[rand_idx, :2].unsqueeze(1)
+                obstacle_pos[:,:, 2] = torch.ones(obstacle_pos[:,:, 2].shape, device=self.device) * 1.05
+                obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
+                new_root_pose = torch.cat([obstacle_pos.squeeze(1), obstacle_quat], dim=1)
+                self._asset.write_root_pose_to_sim(new_root_pose)
+
+            else:
+                raise NotImplementedError
 
 
 

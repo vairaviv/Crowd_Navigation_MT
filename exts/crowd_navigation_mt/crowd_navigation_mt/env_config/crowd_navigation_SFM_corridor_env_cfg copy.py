@@ -55,6 +55,7 @@ from crowd_navigation_mt.terrains.config import (
     OBS_TERRAINS_CFG,
     OBS_TERRAINS_DYNOBS_CFG,
     CORRIDOR_WITH_STAT_OBS
+
 )  # isort: skip
 from crowd_navigation_mt.terrains.importer import SFMObstacleImporterCfg
 
@@ -103,31 +104,6 @@ class EmptySceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.DomeLightCfg(color=(0.13, 0.13, 0.13), intensity=10000.0),
     )
 
-    ##
-    # For Debug purposes
-    ##
-    
-    # Terrain configs
-    terrain = TerrainImporterCfg(
-        prim_path="/World/ground",
-        terrain_type="generator",
-        terrain_generator=OBS_TERRAINS_DYNOBS_CFG,  # OBS_TERRAINS_CFG,
-        # max_init_terrain_level=2,
-        collision_group=-1,
-        # env_spacing=8.0,
-        physics_material=sim_utils.RigidBodyMaterialCfg(
-            friction_combine_mode="multiply",
-            restitution_combine_mode="multiply",
-            static_friction=1.0,
-            dynamic_friction=1.0,
-        ),
-        # visual_material=sim_utils.MdlFileCfg(
-        #     mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
-        #     project_uvw=True,
-        # ),
-        debug_vis=False,
-    )
-
 @configclass 
 class SFMObsSceneCfg(EmptySceneCfg):
 
@@ -141,7 +117,7 @@ class SFMObsSceneCfg(EmptySceneCfg):
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
         terrain_type="generator",
-        terrain_generator=OBS_TERRAINS_DYNOBS_CFG,  #CORRIDOR_WITH_STAT_OBS,  # OBS_TERRAINS_DYNOBS_CFG,  # OBS_TERRAINS_CFG,
+        terrain_generator=CORRIDOR_WITH_STAT_OBS,  # OBS_TERRAINS_CFG,
         # max_init_terrain_level=2,
         collision_group=-1,
         # env_spacing=8.0,
@@ -253,7 +229,7 @@ class SFMObsSceneCfg(EmptySceneCfg):
     # obstacles sensors
     sfm_obstacle_lidar : RayCasterCfg = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/SFM_Obstacle",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, -0.8)), # in the center of the rigid body
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)), # in the center of the rigid body
         attach_yaw_only=True,
         # pattern_cfg=patterns.GridPatternCfg(resolution=0.2, size=[1.0, 1.0]),
         pattern_cfg = patterns.LidarPatternCfg(
@@ -262,7 +238,7 @@ class SFMObsSceneCfg(EmptySceneCfg):
             horizontal_fov_range=(0, 360),
             horizontal_res=1,
         ),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"], # TODO add robots and other obstacles here
     )
 
