@@ -7,21 +7,25 @@ from __future__ import annotations
 
 from dataclasses import MISSING
 from typing import TYPE_CHECKING, Literal
+import torch
 
 import omni.isaac.lab.sim as sim_utils
 from omni.isaac.lab.utils import configclass
 
 from omni.isaac.lab.assets import RigidObject
 
+from omni.isaac.lab.terrains import TerrainImporter
+
 if TYPE_CHECKING:
     from .sfm_obstacle_importer_cfg import SFMObstacleImporterCfg
     from omni.isaac.lab.assets import RigidObjectCfg
     from omni.isaac.lab.envs import ManagerBasedRLEnv
+    from omni.isaac.lab.terrains import TerrainImporterCfg
 
 
-class SFMObstacleImporter(RigidObject):
+class SFMObstacleImporter(TerrainImporter):
 
-    obstacle_dict: dict = dict()
+    obstacles: torch.tensor 
 
     def __init__(self, cfg: SFMObstacleImporterCfg):
         """Initializes the social force model obstacle importer.
@@ -37,6 +41,7 @@ class SFMObstacleImporter(RigidObject):
         
         # for i in range(self._cfg.num_sfm_obstacles):
         #     print(i)
+
 
 
         for i in range(cfg.num_sfm_obstacles):

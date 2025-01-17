@@ -15,8 +15,10 @@ from omni.isaac.lab.assets import AssetBaseCfg, RigidObjectCfg
 
 from .sfm_obstacle_importer import SFMObstacleImporter
 
+from omni.isaac.lab.terrains import TerrainImporterCfg
+
 @configclass
-class SFMObstacleImporterCfg(RigidObjectCfg):
+class SFMObstacleImporterCfg(TerrainImporterCfg):
 
     class_type: type = SFMObstacleImporter
     """The class to use for the social force model importer.
