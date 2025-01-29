@@ -30,7 +30,7 @@ DEMO_SEMANTIC_ENV_CFG = TerrainGeneratorCfg(
             # size=(50, 20),
             obstacle_height_mode="fixed",
             obstacle_width_range=(0.4, 1.6),
-            obstacle_height_range=(0.4, 2),
+            obstacle_height_range=(0.0, 0.1),
             platform_width=2.0,
             num_obstacles=8,  # 8
         ),

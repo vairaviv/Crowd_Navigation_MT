@@ -24,7 +24,7 @@ from omni.isaac.lab.terrains.trimesh.utils import make_plane
 from omni.isaac.lab.terrains.utils import create_prim_from_mesh
 
 
-from ..elevation_map.semantic_height_map import create_semantic_map
+
 
 if TYPE_CHECKING:
     from .semantic_terrain_importer_cfg import SemanticTerrainImporterCfg
@@ -39,11 +39,20 @@ class SemanticTerrainImporter(TerrainImporter):
     """Grid with semantic informations"""
     grid_map_one_hot: torch.tensor
 
+    cfg: SemanticTerrainImporterCfg
+
     def __init__(self, cfg: SemanticTerrainImporterCfg):
         super().__init__(cfg=cfg)
+        
+        from ..elevation_map.semantic_height_map import create_semantic_map
 
         self.grid_map = create_semantic_map(self.device, self.cfg.terrain_generator.size, self.cfg)
         num_classes = torch.unique(self.grid_map).size(0)
         self.grid_map_one_hot = torch.nn.functional.one_hot(self.grid_map, num_classes)
+
+        # transform vector in order to shift the gridmap to world frame, scaled for transform
+        width = cfg.terrain_generator.size[0]
+        height = cfg.terrain_generator.size[1]
+        self.transform_vector = torch.tensor([-width / 2, -height / 2]).to(device=self.device)
 
 

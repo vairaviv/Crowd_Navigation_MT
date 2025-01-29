@@ -312,7 +312,7 @@ class CommandsCfg:
         resampling_time_range=(100000.0, 100000.0),  # resample only on reset
         debug_vis=False,
         robot_radius=0.5,
-        sampling_radius=20.0,
+        sampling_radius=10.0,
         robot_to_goal_line_vis=True,
     )
 

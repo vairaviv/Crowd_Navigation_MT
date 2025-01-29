@@ -28,3 +28,8 @@ class SemanticTerrainImporterCfg(TerrainImporterCfg):
 
     Defaults to :class:`crowd_navigation_mt.terrains.importer.SemanticTerrainImporter`.
     """
+
+    semantic_terrain_resolution: float = 0.1
+
+    debug_plot: bool = False
+    
