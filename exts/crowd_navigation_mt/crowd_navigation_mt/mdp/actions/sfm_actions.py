@@ -23,7 +23,7 @@ from omni.isaac.lab.markers.config import CUBOID_MARKER_CFG, BLUE_ARROW_X_MARKER
 
 if TYPE_CHECKING:
     from .sfm_actions_cfg import SFMActionCfg
-    from crowd_navigation_mt.mdp.commands import RobotGoalCommand, LvlConsecutiveGoalCommand
+    from crowd_navigation_mt.mdp.commands import RobotGoalCommand, LvlConsecutiveGoalCommand, SemanticConsecutiveGoalCommand
     from nav_tasks.mdp import ConsecutiveGoalCommand
 
 
@@ -49,7 +49,7 @@ class SFMAction(ActionTerm):
         self._obstacles_actions_pos = torch.zeros((self.num_envs, self._action_dim), device=self.device)
         if self.cfg.robot_visible:    
             self._robots_positions = self._env.scene.articulations["robot"].data.body_pos_w
-        self._sfm_obstacles_positions_w = self._asset.data.body_pos_w
+        self._sfm_obstacles_positions_w = self._asset.data.body_pos_w.squeeze(1)
 
         # self._asset.write_root_pose_to_sim(new_root_pose)
 
@@ -92,12 +92,13 @@ class SFMAction(ActionTerm):
         # just happens at start to spawn obstacles in the expected terrain level and type
         num_agents = 5
         if self._env._sim_step_counter == 1: # self._env.common_step_counter == 0:
-            from crowd_navigation_mt.mdp.commands import LvlConsecutiveGoalCommand
+            from crowd_navigation_mt.mdp.commands import LvlConsecutiveGoalCommand, SemanticConsecutiveGoalCommand
             from nav_tasks.mdp import ConsecutiveGoalCommand
             command = self._env.command_manager._terms["sfm_obstacle_target_pos"]
             
             if isinstance(command, LvlConsecutiveGoalCommand):
-                obstacle_pos = torch.ones(self._asset.data.body_pos_w.shape, device=self.device)
+                # TODO: check if this is necessary when initialized already at start
+                self._sfm_obstacles_positions_w = torch.ones_like(self._asset.data.body_pos_w.squeeze(1), device=self.device)
                 start_id =0
                 for level in range(command.num_levels):
                     for _type in range(command.num_types):
@@ -108,7 +109,7 @@ class SFMAction(ActionTerm):
                             end_id = start_id
                             break
                         # takes the first n_agent points from the grouped points in the specifc level and type
-                        obstacle_pos[start_id:end_id, :] = command.grouped_points[level][_type][:(_type + 1) * num_agents, :].unsqueeze(1)
+                        self._sfm_obstacles_positions_w[start_id:end_id, :] = command.grouped_points[level][_type][:(_type + 1) * num_agents, :]
                         start_id = end_id
 
                 if end_id < command.num_levels * (command.num_types * (command.num_types + 1) / 2):
@@ -116,26 +117,52 @@ class SFMAction(ActionTerm):
                 elif end_id < self.num_envs:
                     print("Too many dynamic obstacles, they will be spawned below the plane!")
                     # TODO: @ vairaviv just did it ugly if time maybe store them some where 
-                    obstacle_pos[end_id:, :] = obstacle_pos[end_id:, :] * -2
+                    self._sfm_obstacles_positions_w[end_id:, :] = self._sfm_obstacles_positions_w[end_id:, :] * -2.05
 
-                obstacle_pos[:end_id, :, 2] = torch.ones(obstacle_pos[:end_id, :, 2].shape, device=self.device) * 1.05
+                self.num_sfm_ostacle = end_id
+                self._sfm_obstacles_positions_w[:end_id, :, 2] = torch.ones(self._sfm_obstacles_positions_w[:end_id, :, 2].shape, device=self.device) * 1.05
                 obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
-                new_root_pose = torch.cat([obstacle_pos.squeeze(1), obstacle_quat], dim=1)
+                new_root_pose = torch.cat([self._sfm_obstacles_positions_w, obstacle_quat], dim=1)
                 self._asset.write_root_pose_to_sim(new_root_pose)
 
             elif isinstance(command, ConsecutiveGoalCommand):
-                obstacle_pos = torch.zeros(self._asset.data.body_pos_w.shape, device=self.device)
+                self._sfm_obstacles_positions_w = torch.ones_like(self._asset.data.body_pos_w.squeeze(1), device=self.device)
                 rand_idx = torch.randperm(command._analysis.points.shape[0], device=self.device)[:self._asset.data.body_pos_w.shape[0]]
-                obstacle_pos[:,:, :2] = command._analysis.points[rand_idx, :2].unsqueeze(1)
-                obstacle_pos[:,:, 2] = torch.ones(obstacle_pos[:,:, 2].shape, device=self.device) * 1.05
+                self._sfm_obstacles_positions_w[:, :2] = command._analysis.points[rand_idx, :2]
+                self._sfm_obstacles_positions_w[:, 2] = torch.ones(self._sfm_obstacles_positions_w[:, 2].shape, device=self.device) * 1.05
                 obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
-                new_root_pose = torch.cat([obstacle_pos.squeeze(1), obstacle_quat], dim=1)
+                new_root_pose = torch.cat([self._sfm_obstacles_positions_w, obstacle_quat], dim=1)
                 self._asset.write_root_pose_to_sim(new_root_pose)
+                self.num_sfm_ostacle = self.num_envs
 
+            elif isinstance(command, SemanticConsecutiveGoalCommand):
+                self.num_sfm_ostacle = min(command.cfg.num_sfm_obstacle, self.num_envs)
+                # self._sfm_obstacles_positions_w[:] = command.valid_pos_w
+                self._sfm_obstacles_positions_w = torch.ones_like(self._asset.data.body_pos_w.squeeze(1), device=self.device)
+                rand_idx = torch.randint(0, command.valid_pos_w.shape[0], (self.num_envs,), device=self.device)
+                self._sfm_obstacles_positions_w[:, :2] = command.valid_pos_w[rand_idx, :2]
+                
+                # sort out the active dynamic obstacles
+                self.active_sfm_mask = torch.zeros_like(
+                    self._sfm_obstacles_positions_w[:, 2], 
+                    dtype=torch.bool, 
+                    device=self.device
+                )
+                self.active_sfm_mask[:self.num_sfm_ostacle] = True
+
+                # initialize the rest of the dynamic obstacle under the terrain
+                self._sfm_obstacles_positions_w[:, 2] = torch.where(
+                    self.active_sfm_mask, 
+                    torch.ones_like(self._sfm_obstacles_positions_w[:, 2]) * 1.05,
+                    torch.ones_like(self._sfm_obstacles_positions_w[:, 2]) * -2.05
+                )
+                
+                obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
+                new_root_pose = torch.cat([self._sfm_obstacles_positions_w, obstacle_quat], dim=1)
+                self._asset.write_root_pose_to_sim(new_root_pose)
+                
             else:
                 raise NotImplementedError
-
-
 
         if self._counter % self.cfg.low_level_decimation == 0:
 
@@ -166,12 +193,12 @@ class SFMAction(ActionTerm):
                 ], dim=1
             ).to(device=self.device)
         )
-        obstacle_pos = self._asset.data.root_pos_w
-        obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
-        new_root_pose = torch.cat([obstacle_pos, obstacle_quat], dim=1)
-        self._asset.write_root_pose_to_sim(new_root_pose)
+        # self._sfm_obstacles_positions_w = self._asset.data.root_pos_w
+        # obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
+        # new_root_pose = torch.cat([self._sfm_obstacles_positions_w, obstacle_quat], dim=1)
+        # self._asset.write_root_pose_to_sim(new_root_pose)
 
-        # self._apply_position_control()
+        self._apply_position_control()
         
     """
     Helpers
@@ -179,18 +206,25 @@ class SFMAction(ActionTerm):
 
     def _apply_position_control(self):
         """Apply position control for stable obstacle movement."""
-        self._prev_obstacles_actions_pos = self._obstacles_actions_pos
-        self._obstacles_actions_pos = self._obstacles_actions_vel * self._env.step_dt / self.cfg.low_level_decimation
+        self._prev_obstacles_actions_pos[:self.num_sfm_ostacle, :] = self._obstacles_actions_pos[:self.num_sfm_ostacle, :]
+        self._obstacles_actions_pos[:self.num_sfm_ostacle, :] = self._obstacles_actions_vel[
+            :self.num_sfm_ostacle, :
+        ] * self._env.step_dt / self.cfg.low_level_decimation
 
         # fixing the z-koordinate to slightly above ground, otherwise with different command the spawn location is 
         # defined differently w.r.t body origin and some even let the body fall through ground 
         # in general avoids a lot of collision - simulation weird behavior
-        obstacle_xy_pos = self._asset.data.body_pos_w.squeeze(1)[:, :2] + self._obstacles_actions_pos
-        obstacle_pos = torch.cat([obstacle_xy_pos, torch.ones((self.num_envs, 1), device=self.device) * 1.05], dim=1)
+        obstacle_xy_pos = self._asset.data.body_pos_w.squeeze(1)[:self.num_sfm_ostacle, :2] + self._obstacles_actions_pos[:self.num_sfm_ostacle, :]
+        self._sfm_obstacles_positions_w[:self.num_sfm_ostacle, :] = torch.cat(
+            [
+                obstacle_xy_pos, 
+                torch.ones((self.num_sfm_ostacle, 1), device=self.device) * 1.05
+            ], dim=1
+        )
 
         # TODO @vairaviv add heading command if expanded here
         obstacle_quat = math_utils.yaw_quat(self._asset.data.root_quat_w)
-        new_root_pose = torch.cat([obstacle_pos, obstacle_quat], dim=1)
+        new_root_pose = torch.cat([self._sfm_obstacles_positions_w, obstacle_quat], dim=1)
         # for Debug purposes, sometimes divided by zero
         if new_root_pose.isnan().any():
             ValueError(f"new_root_pos in NaN")
@@ -202,8 +236,8 @@ class SFMAction(ActionTerm):
         self._counter = 0
         if self.cfg.robot_visible:    
             self._agent_position = self._env.scene.articulations["robot"].data.body_pos_w
-        self._sfm_obstacles_positions_w = self._asset.data.body_pos_w
-        self._sfm_obstacles_velocity_w = self._asset.data.body_vel_w
+        self._sfm_obstacles_positions_w = self._asset.data.body_pos_w.squeeze(1)
+        self._sfm_obstacles_velocity_w = self._asset.data.body_vel_w.squeeze(1)
 
     def _get_goal_directions(self):
         """Compute the direction for all agents in all envs."""
@@ -272,8 +306,8 @@ class SFMAction(ActionTerm):
     def _get_sfm_obstacles_directions(self):
         """Compute the repulsive forces due to other agents."""
         # Get the positions and velocities of the SFM obstacles (other agents)
-        agent_positions = self._sfm_obstacles_positions_w.squeeze(1)[:, :2]  # Current positions
-        agent_velocities = self._sfm_obstacles_velocity_w.squeeze(1)[:, :2]  # Current velocities
+        agent_positions = self._sfm_obstacles_positions_w[:, :2]  # Current positions
+        agent_velocities = self._sfm_obstacles_velocity_w[:, :2]  # Current velocities
 
         # Current agent's position (assuming each environment has one agent being modeled)
         current_agent_positions = self._asset.data.root_pos_w[:, :2]
