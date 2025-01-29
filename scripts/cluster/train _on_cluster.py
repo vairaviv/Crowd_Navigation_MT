@@ -95,7 +95,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
     # specify directory for logging experiments
-    log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
+    # log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
+    # log_root_path = os.path.join("logs", "cluster")
+    log_root_path = os.path.join("isaaclab", "logs", "rsl_rl", agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     # specify directory for logging runs: {time-stamp}_{run_name}
@@ -125,12 +127,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # wrap around environment for rsl-rl
     env = RslRlVecEnvWrapper(env)
 
-    agent_cfg.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
-
     # create runner from rsl-rl
     runner = OnPolicyRunner(
         env, agent_cfg.to_dict(), 
-        log_dir=log_dir, 
+        log_dir=log_dir,
         device=agent_cfg.device
     )
     # write git state to logs

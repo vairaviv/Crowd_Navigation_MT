@@ -8,9 +8,10 @@ import torch
 from .observation_base import ObservationBase
 from .raisim_conversion import isaac_raisim_batched_conversion, isaac_raisim_foot_conversion
 
+DEVICE = "cuda"
 
 class PrivilegedObservation(ObservationBase):
-    def __init__(self, num_envs=1, simulation_dt=0.0025, control_dt=0.02, device="cuda"):
+    def __init__(self, num_envs=1, simulation_dt=0.0025, control_dt=0.02, device=DEVICE):  # device="cuda"
         super().__init__(simulation_dt, control_dt)
         self.obs_dim = 50
         self.dt = control_dt
