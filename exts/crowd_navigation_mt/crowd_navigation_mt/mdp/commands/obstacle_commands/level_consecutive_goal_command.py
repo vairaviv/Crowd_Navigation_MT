@@ -41,7 +41,7 @@ class LvlConsecutiveGoalCommand(GoalCommandBaseTerm):
     cfg: LvlConsecutiveGoalCommandCfg
     """Configuration for the command."""
 
-    def __init__(self, cfg: LvlConsecutiveGoalCommand, env: ManagerBasedRLEnv):
+    def __init__(self, cfg: LvlConsecutiveGoalCommandCfg, env: ManagerBasedRLEnv):
         """Initialize the command class.
 
         Args:

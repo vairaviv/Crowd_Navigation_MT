@@ -2,4 +2,7 @@ from .obst_goal_command import ObstGoalCommand
 from .obst_goal_command_cfg import ObstGoalCommandCfg
 from .level_consecutive_goal_command import LvlConsecutiveGoalCommand
 from .level_consecutive_goal_command_cfg import LvlConsecutiveGoalCommandCfg
-
+from .semantic_terrain_goal_command import SemanticGoalCommand
+from .semantic_terrain_goal_command_cfg import SemanticGoalCommandCfg
+from .semantic_terrain_consecutive_goal_command import SemanticConsecutiveGoalCommand
+from .semantic_terrain_consecutive_goal_command_cfg import SemanticConsecutiveGoalCommandCfg
