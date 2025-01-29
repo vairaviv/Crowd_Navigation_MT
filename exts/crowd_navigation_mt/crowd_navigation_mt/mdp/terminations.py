@@ -7,6 +7,8 @@ from omni.isaac.lab.assets import Articulation
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.sensors import ContactSensor
 
+from crowd_navigation_mt.terrains import SemanticTerrainImporter
+
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
 
@@ -16,6 +18,32 @@ if TYPE_CHECKING:
 """
 MDP terminations.
 """
+
+
+def in_restricted_area(
+        env: ManagerBasedRLEnv,
+        asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+        area_label_idx: list[int] = [4],
+):
+    """check how the semantic map is created in crowd_navigation_mt/terrains/elevation_map/semantic_height_map.py
+    or in the "SemanticTerrainImporter" for the label indices"""
+    label_idx: torch.tensor = torch.tensor(area_label_idx).to(device=env.device)
+    robot: Articulation = env.scene[asset_cfg.name]
+    if isinstance(env.scene.terrain, SemanticTerrainImporter):
+        terrain = env.scene.terrain
+        grid_map = terrain.grid_map
+        state_to_grid = (robot.data.root_pos_w[:, :2] - terrain.transform_vector) / terrain.cfg.semantic_terrain_resolution
+        grid_to_idx = state_to_grid.int()
+        termination = torch.isin(grid_map[grid_to_idx[:, 0], grid_to_idx[:, 1]], label_idx)
+        # if termination.any():
+        #     print("[INFO]: Robot is in restricted area.")
+        return termination
+    
+    else:
+        raise TypeError(
+            f"Expected 'SemanticTerrainImporter' as env.scene.terrain, but got '{type(env.scene.terrain).__name__}' instead."
+        )
+
 
 
 def at_goal(

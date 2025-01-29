@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING
+import time
 
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.sensors import ContactSensor, RayCaster
@@ -14,6 +15,7 @@ from omni.isaac.lab.assets import Articulation
 
 from crowd_navigation_mt import mdp
 from omni.isaac.lab.terrains import TerrainImporter
+from crowd_navigation_mt.terrains import SemanticTerrainImporter
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
@@ -68,6 +70,45 @@ def feet_air_time_positive_biped(env, command_name: str, threshold: float, senso
 """
 Navigation rewards.
 """
+
+
+def within_social_norms(
+        env: ManagerBasedRLEnv,
+        asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+):
+    """
+    Receives:
+     + 1/max_episode_length_s for staying on 0 or 1 terrain
+     - 1/max_episode_length_s for leaving 0 or 1 terrain
+
+    max episode reward -1
+    """
+    if isinstance(env.scene.terrain, SemanticTerrainImporter):
+        semantic_map = env.scene.terrain.grid_map
+
+        robot: Articulation = env.scene[asset_cfg.name]
+
+        width = env.scene.terrain.cfg.terrain_generator.size[0]
+        height = env.scene.terrain.cfg.terrain_generator.size[1]
+        transform_vector = torch.tensor([width / 2, height / 2]).to(device=env.device)
+        robot_pos_transormed_to_map = robot.data.root_pos_w[:, :2] + transform_vector 
+        robot_pos_to_idx = (robot_pos_transormed_to_map / env.scene.terrain.cfg.semantic_terrain_resolution).int()
+        
+        reward = torch.ones(env.num_envs, device=env.device)
+
+        on_sidewalk = semantic_map[robot_pos_to_idx[:, 0], robot_pos_to_idx[:, 1]] == 0
+        on_crosswalk = semantic_map[robot_pos_to_idx[:, 0], robot_pos_to_idx[:, 1]] == 1
+
+        adhered_to_norm = torch.logical_or(on_sidewalk, on_crosswalk)
+        reward[adhered_to_norm.argwhere().squeeze(1)] = 0  # 1 / env.max_episode_length_s
+
+        on_restricted_area = ~adhered_to_norm
+        reward[on_restricted_area.argwhere().squeeze(1)] = - 1 / env.max_episode_length_s
+        
+        return reward
+        
+    else:
+        raise TypeError(f"Expected an instance of SemanticTerrainImporter, but got {type(env.scene.terrain)}")
 
 
 def goal_reached(
@@ -132,6 +173,12 @@ def goal_closeness(
     max_dist = torch.norm(
         goal_cmd_generator.pos_command_w[:, :2] - goal_cmd_generator.pos_spawn_w[:, :2], dim=1, p=2
     )
+
+    # TODO: @ vairaviv remove after debugging
+    if torch.any(max_dist <= 1e-6):
+        max_dist[max_dist==0.0] = 1e-6
+        print("[DEBUG]: pos_command and spawn_command are the same! Not terminated properly or spawned at command?")
+        # time.sleep(10)
 
     # compute the reward
     distance_goal = torch.norm(asset.data.root_pos_w[:, :2] - goal_cmd_generator.pos_command_w[:, :2], dim=1, p=2)

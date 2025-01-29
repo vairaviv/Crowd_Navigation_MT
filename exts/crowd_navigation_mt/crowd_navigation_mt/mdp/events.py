@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING
+import time
 
 import carb
 import omni.physics.tensors.impl.api as physx
@@ -37,7 +38,7 @@ if TYPE_CHECKING:
     from omni.isaac.lab.terrains import TerrainImporter
 
     # from omni.isaac.lab_tasks.navigation.cost_cloud_nav.mdp.commands.goal_command import GoalCommand
-    from crowd_navigation_mt.mdp.commands import RobotGoalCommand, LvlConsecutiveGoalCommand
+    from crowd_navigation_mt.mdp.commands import RobotGoalCommand, LvlConsecutiveGoalCommand, SemanticGoalCommand
 
 
 def reset_root_state_from_terrain_lvl_type(
@@ -107,6 +108,62 @@ def reset_root_state_from_terrain_lvl_type(
     # set into the physics simulation
     asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
     asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
+
+
+def reset_robot_position_semantic(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    additive_heading_range: dict[str, tuple[float, float]],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    command_name: str = "robot_goal",
+):
+    """Reset the asset root state to the spawn state defined by the command generator.
+
+    Args:
+        env: The environment object.
+        env_ids: The environment ids to reset.
+        additive_heading_range: The additive heading range to apply to the spawn heading.
+        asset_cfg: The asset configuration to reset. Defaults to SceneEntityCfg("robot").
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject | Articulation = env.scene[asset_cfg.name]
+    goal_cmd_geneator: SemanticGoalCommand = env.command_manager._terms[command_name]
+    # get default root state
+    root_states = asset.data.default_root_state[env_ids].clone()
+
+    # positions - based on given start points (command generator)
+    # pos_offset = torch.zeros_like(root_states[:, 0:3])
+
+    # get valid spawn locations from the command
+    random_idx = torch.randint(0, goal_cmd_geneator.valid_pos_idx.size(0), (len(env_ids),), device=goal_cmd_geneator.device)
+    positions = goal_cmd_geneator.valid_pos_w[random_idx, :]
+
+    # overwrite spawn position in goal command for other calculations
+    goal_cmd_geneator.pos_spawn_w[env_ids] = positions
+
+    # TODO: @vairaviv remove after debugging
+    if torch.any(
+        torch.isclose(positions[:, 0], goal_cmd_geneator.pos_command_w[env_ids, 0], 1e-4) & 
+        torch.isclose(positions[:, 1], goal_cmd_geneator.pos_command_w[env_ids, 0], 1e-4)
+    ):
+        print("[DEBUG]: Position Command and Spawn location are the same!")
+        time.sleep(10)
+        
+
+    # positions = goal_cmd_geneator.pos_spawn_w[env_ids]
+    # positions = env.scene.env_origins[env_ids] + pos_offset
+    # orientations - based on given start points (command generator)
+    euler_angles = torch.zeros_like(root_states[:, 3:6])
+    euler_angles[:, 2].uniform_(*additive_heading_range.get("yaw", (0.0, 0.0)))  # add additive disturbance to heading
+    euler_angles[:, 2] += goal_cmd_geneator.heading_spawn_w[env_ids]
+    orientations = quat_from_euler_xyz(euler_angles[:, 0], euler_angles[:, 1], euler_angles[:, 2])
+    # velocities - zero
+    velocities = root_states[:, 7:13]
+
+    # set into the physics simulation
+    asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
+    asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
+
 
 def reset_robot_position_plr(
     env: ManagerBasedEnv,
