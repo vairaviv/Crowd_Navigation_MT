@@ -22,6 +22,7 @@ from .rl_cfg import (
     RslRlPpoActorCriticBetaRecurrentLidarCnnCfg,
     RslRlPpoActorCriticBetaRecurrentLidarHeightCnnCfg,
     RslRlPpoActorCriticBetaLidarCNNCfg,
-    RslRlPpoActorCriticBetaLidar2DCNNCfg
+    RslRlPpoActorCriticBetaLidar2DCNNCfg,
+    RslRlPpoActorCriticBeta2DCNNSemanticCfg
 )
 from .vecenv_wrapper import RslRlVecEnvWrapper
