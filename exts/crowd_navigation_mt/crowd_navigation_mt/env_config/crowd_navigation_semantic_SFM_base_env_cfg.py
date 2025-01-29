@@ -27,10 +27,11 @@ from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 from crowd_navigation_mt.terrains import SemanticTerrainImporterCfg
 import crowd_navigation_mt.mdp as mdp 
+
 # import crowd_navigation_mt.sensors import patterns
 from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
 from crowd_navigation_mt import CROWDNAV_DATA_DIR
-from crowd_navigation_mt.mdp import ObservationHistoryTermCfg
+from crowd_navigation_mt.mdp import ObservationHistoryTermCfg, LidarHistoryTermCfg, SemanticMapObsCfg
 
 from nav_tasks.mdp.commands import GoalCommandCfg, ConsecutiveGoalCommandCfg
 from nav_collectors.collectors import TrajectorySamplingCfg
@@ -60,7 +61,7 @@ from crowd_navigation_mt.terrains.config import (
 )  # isort: skip
 from crowd_navigation_mt.terrains.importer import SFMObstacleImporterCfg
 
-from crowd_navigation_mt.mdp import LidarHistoryTermCfg
+
 
 """To improve: we have 3 separate goal_reached functions, one for logging, one for reward and one for termination
 
@@ -89,76 +90,8 @@ ISAAC_GYM_JOINT_NAMES = [
 # Scene definition
 ##
 
-
-@configclass
-class EmptySceneCfg(InteractiveSceneCfg):
-    """Configuration for the terrain scene with a legged robot."""
-
-    terrain = TerrainImporterCfg(
-        prim_path="/World/ground",
-        terrain_type="plane",
-        collision_group=-1,
-    )
-
-    light = AssetBaseCfg(
-        prim_path="/World/skyLight",
-        spawn=sim_utils.DomeLightCfg(color=(0.13, 0.13, 0.13), intensity=10000.0),
-    )
-
-    ##
-    # For Debug purposes
-    ##
-    
-    # Terrain configs
-    terrain = TerrainImporterCfg(
-        prim_path="/World/ground",
-        terrain_type="generator",
-        terrain_generator=DEMO_SEMANTIC_ENV_CFG,  # OBS_TERRAINS_CFG,
-        # max_init_terrain_level=2,
-        collision_group=-1,
-        # env_spacing=8.0,
-        physics_material=sim_utils.RigidBodyMaterialCfg(
-            friction_combine_mode="multiply",
-            restitution_combine_mode="multiply",
-            static_friction=1.0,
-            dynamic_friction=1.0,
-        ),
-        # visual_material=sim_utils.MdlFileCfg(
-        #     mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
-        #     project_uvw=True,
-        # ),
-        debug_vis=False,
-    )
-
 @configclass 
-class SFMSemanticSceneCfg(EmptySceneCfg):
-
-    # TODO create a class to add SFM obstacles and make it initialize random num of dyn obstacles
-    # sfm_obstacle: SFMObstacleImporterCfg = SFMObstacleImporterCfg()
-    
-    # def __post_init__(self):
-    #     sfm_obstacle: SFMObstacleImporterCfg = SFMObstacleImporterCfg()
-    
-    # # Terrain configs
-    # terrain = TerrainImporterCfg(
-    #     prim_path="/World/ground",
-    #     terrain_type="generator",
-    #     terrain_generator=OBS_TERRAINS_DYNOBS_CFG,  #CORRIDOR_WITH_STAT_OBS,  # OBS_TERRAINS_DYNOBS_CFG,  # OBS_TERRAINS_CFG,
-    #     # max_init_terrain_level=2,
-    #     collision_group=-1,
-    #     # env_spacing=8.0,
-    #     physics_material=sim_utils.RigidBodyMaterialCfg(
-    #         friction_combine_mode="multiply",
-    #         restitution_combine_mode="multiply",
-    #         static_friction=1.0,
-    #         dynamic_friction=1.0,
-    #     ),
-    #     # visual_material=sim_utils.MdlFileCfg(
-    #     #     mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
-    #     #     project_uvw=True,
-    #     # ),
-    #     debug_vis=False,
-    # )
+class SFMSemanticSceneCfg(InteractiveSceneCfg):
 
     # Terrain configs
     terrain = SemanticTerrainImporterCfg(
@@ -179,6 +112,8 @@ class SFMSemanticSceneCfg(EmptySceneCfg):
         #     project_uvw=True,
         # ),
         debug_vis=False,
+        semantic_terrain_resolution=0.2,
+        debug_plot=False,  # remove if not needed anymore defaults to False
     )
     
     
@@ -232,7 +167,7 @@ class SFMSemanticSceneCfg(EmptySceneCfg):
 
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
-    lidar : RayCasterCfg = MISSING
+    # lidar : RayCasterCfg = MISSING
 
 
     ##
@@ -280,14 +215,19 @@ class SFMSemanticSceneCfg(EmptySceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, -0.8)), # in the center of the rigid body
         attach_yaw_only=True,
         # pattern_cfg=patterns.GridPatternCfg(resolution=0.2, size=[1.0, 1.0]),
-        pattern_cfg = patterns.LidarPatternCfg(
+        pattern_cfg=patterns.LidarPatternCfg(
             channels=1,
             vertical_fov_range=(0.0, 0.0),
             horizontal_fov_range=(0, 360),
             horizontal_res=1,
         ),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"], # TODO add robots and other obstacles here
+    )
+
+    light = AssetBaseCfg(
+        prim_path="/World/skyLight",
+        spawn=sim_utils.DomeLightCfg(color=(0.13, 0.13, 0.13), intensity=10000.0),
     )
 
 
@@ -305,15 +245,24 @@ class CommandsCfg:
     ##
 
     # # target pos for the obstacle consecutive goal samplings from Nav-Suite
-    sfm_obstacle_target_pos = ConsecutiveGoalCommandCfg(
+    # sfm_obstacle_target_pos = ConsecutiveGoalCommandCfg(
+    #     asset_name="sfm_obstacle",
+    #     resampling_time_range=(10000000.0, 10000000.0), 
+    #     debug_vis=True,
+    #     terrain_analysis=TerrainAnalysisCfg(
+    #         raycaster_sensor="sfm_obstacle_lidar",
+    #         semantic_cost_mapping=None,
+    #     ),
+    #     resample_distance_threshold=0.5,
+    # )
+
+    sfm_obstacle_target_pos = mdp.SemanticConsecutiveGoalCommandCfg(
+        resample_distance_threshold=0.2,
         asset_name="sfm_obstacle",
-        resampling_time_range=(10000000.0, 10000000.0), 
-        debug_vis=True,
-        terrain_analysis=TerrainAnalysisCfg(
-            raycaster_sensor="sfm_obstacle_lidar",
-            semantic_cost_mapping=None,
-        ),
-        resample_distance_threshold=0.5,
+        debug_vis=False,
+        resampling_time_range=(100000000.0,100000000.0),
+        robot_to_goal_line_vis=False,
+        num_sfm_obstacle=10,
     )
     # --------------------------------------------------------
     # # target pos for the obstacle random goal samplings from Nav-Suite
@@ -358,43 +307,28 @@ class CommandsCfg:
     # Robot's Commands
     ##
 
-    # # target position for the robot, random goal sampling from the Nav-Suite
-    # robot_goal = GoalCommandCfg(
-    #     asset_name="robot",
-    #     resampling_time_range=(100000.0, 100000.0),  # resample only on reset
-    #     debug_vis=True,
-    #     trajectory_config={
-    #         "num_paths": [100],
-    #         "max_path_length": [10.0],
-    #         "min_path_length": [2.0],
-    #     },
-    #     z_offset_spawn=0.2,
-    #     infite_sampling=True,
-    #     max_trajectories=10, # None
-    #     traj_sampling=TrajectorySamplingCfg(
-    #         sample_points=100,  # 1000
-    #         height=0.5,
-    #         enable_saved_paths_loading=True,
-    #         terrain_analysis=TerrainAnalysisCfg(
-    #             raycaster_sensor="lidar",
-    #             semantic_cost_mapping=None,
-    #         )
-    #     )
-    # )
-    
-    # target position for the robot, random goal sampling from the previous project, terrain Analysis doesn't work
-    robot_goal = mdp.RobotGoalCommandCfg(
-        # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
+    robot_goal = mdp.SemanticGoalCommandCfg(
         asset_name="robot",
         resampling_time_range=(100000.0, 100000.0),  # resample only on reset
         debug_vis=False,
-        radius=1.0,
-        terrain_analysis=mdp.TerrainAnalysisCfg(
-            raycaster_sensor="lidar",
-        ),  # not required for generated terrains, but for moving environments
-        # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
-        use_grid_spacing=False,
+        robot_radius=0.5,
+        sampling_radius=20.0,
+        robot_to_goal_line_vis=True,
     )
+
+    # # target position for the robot, random goal sampling from the previous project, terrain Analysis doesn't work
+    # robot_goal = mdp.RobotGoalCommandCfg(
+    #     # TODO goal should be in a spawn position next to the robots spawn position --> ensure that goal is not in an obstacle
+    #     asset_name="robot",
+    #     resampling_time_range=(100000.0, 100000.0),  # resample only on reset
+    #     debug_vis=False,
+    #     radius=1.0,
+    #     terrain_analysis=mdp.TerrainAnalysisCfg(
+    #         raycaster_sensor="lidar",
+    #     ),  # not required for generated terrains, but for moving environments
+    #     # angles=[0.0, math.pi / 2, math.pi, 3 * math.pi / 2],
+    #     use_grid_spacing=False,
+    # )
 
 
 @configclass
@@ -413,7 +347,7 @@ class ActionsCfg:
         robot_visible=False,  # currently not implemented still a TODO
         robot_radius=1.5,
         debug_vis=False,
-        max_sfm_velocity=4.0,
+        max_sfm_velocity=0.2,
         stat_obstacle_radius=1.0,
         dyn_obstacle_radius=1.0,
         command_term_name="sfm_obstacle_target_pos",
@@ -553,14 +487,27 @@ class ObservationsCfg:
 
         cpg_state = ObsTerm(func=mdp.cgp_state)
 
-        lidar_distances_history = LidarHistoryTermCfg(
-            func=mdp.LidarHistory,
-            params={"method": "get_history"},
-            history_length=10,
-            history_time_span=5,
-            # decimation=1,
-            sensor_cfg=SceneEntityCfg("lidar"),
-            return_pose_history=True,
+        # lidar_distances_history = LidarHistoryTermCfg(
+        #     func=mdp.LidarHistory,
+        #     params={"method": "get_history"},
+        #     history_length=10,
+        #     history_time_span=5,
+        #     # decimation=1,
+        #     sensor_cfg=SceneEntityCfg("lidar"),
+        #     return_pose_history=True,
+        # )
+
+        semantic_map = SemanticMapObsCfg(
+            func=mdp.SemanticMapObs,
+            params={
+                "method": "get_map",
+            },
+            asset_cfg=SceneEntityCfg("robot"),
+            obstacle_cfg=SceneEntityCfg("sfm_obstacle"),
+            obs_range=[10.0, 10.0],
+            obstacle_buffer_radius=1.2, # in m
+            plot_env_id=27,
+            debug_plot=False,  # TODO: remove before training slows down the training time
         )
 
         def __post_init__(self):
@@ -597,34 +544,19 @@ class EventCfg:
             "num_buckets": 64,
         },
     )
-    
-    # reset obstacle spawn position according to obstacle command
-    # TODO: TerrainAnalysisRootReset is not of type ManagerTerm, check what the issue is
-    # reset_sfm_obstacle = EventTerm(
-    #     func=mdp.TerrainAnalysisRootReset,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("sfm_obstacle"),
-    #         "yaw_range": (-3.14, 3.14),
-    #         "velocity_range": (0.0, 0.0),
-    #     }
-    # )
-    # -----------------------------------------
-    # reset only works with Command of type :class:`nav_tasks.mdp.GoalCommand` with certain attribute 
-    # reset_sfm_obstacle = EventTerm(
-    #     func=mdp.reset_robot_position,
-    #     mode="reset",
-    #     params={
-    #         "goal_command_generator_name": "sfm_obstacle_target_pos",
-    #         "asset_cfg": SceneEntityCfg("sfm_obstacle"),
-    #         "yaw_range": (-3.14, 3.14),
-    #     }
-    # )
-    # -----------------------------------------
 
     # TODO curriculum spawning
+    # reset_base = EventTerm(
+    #     func=mdp.reset_robot_position_plr,
+    #     mode="reset",
+    #     params={
+    #         # "additive_heading_range": {"yaw": (-1.0, +1.0)},
+    #         "additive_heading_range": {"yaw": (-3.14, 3.14)},
+    #         "command_name": "robot_goal",
+    #     },
+    # )
     reset_base = EventTerm(
-        func=mdp.reset_robot_position_plr,
+        func=mdp.reset_robot_position_semantic,
         mode="reset",
         params={
             # "additive_heading_range": {"yaw": (-1.0, +1.0)},
@@ -632,17 +564,7 @@ class EventCfg:
             "command_name": "robot_goal",
         },
     )
-    # reset_base = EventTerm(
-    #     func=mdp.reset_robot_position,
-    #     mode="reset",
-    #     params={
-    #         # "additive_heading_range": {"yaw": (-1.0, +1.0)},
-    #         "yaw_range": (-3.14, 3.14),
-    #         "asset_cfg": SceneEntityCfg("robot"),
-    #         "goal_command_generator_name": "robot_goal",
-    #     },
-    # )
-
+    
     reset_robot_joints = EventTerm(
         func=mdp.reset_joints_by_scale,
         mode="reset",
@@ -659,7 +581,7 @@ class RewardsCfg:
     # -- tasks
     goal_reached = RewTerm(
         func=mdp.goal_reached,  # reward is high to compensate for reset penalty
-        weight=50.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
+        weight=20.0,  # Sparse Reward of {0.0,0.2} --> Max Episode Reward: 2.0
         params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD},
     )
 
@@ -671,6 +593,11 @@ class RewardsCfg:
     goal_closeness = RewTerm(
         func=mdp.goal_closeness,
         weight=1.0,  # Dense Reward of [0.0, 0.025]  --> Max Episode Reward: 0.25
+    )
+
+    within_social_norms = RewTerm(
+        func=mdp.within_social_norms,
+        weight=10.0,
     )
 
     # stage_cleared = RewTerm(
@@ -696,42 +623,46 @@ class RewardsCfg:
     #     weight=-0.01,  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     # )
 
-    # episode_termination = RewTerm(
-    #     func=mdp.is_terminated,
-    #     weight=-500.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
-    # )
+    episode_termination = RewTerm(
+        func=mdp.is_terminated,
+        weight=-5.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
+    )
 
     action_rate_l2 = RewTerm(
         func=mdp.action_rate_l2, 
         weight=-0.1  # Dense Reward of [-0.01, 0.0] --> Max Episode Penalty: -0.1
     )
-
-    # took out because Observation can not handle history yet
-    # no_robot_movement = RewTerm(
-    #     func=mdp.no_robot_movement_2d,
-    #     weight=-5,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    # # TODO: @vairaviv more advanced reward not necessary
+    # close_to_restricted_area = RewTerm(
+    #     func=mdp.distance_to_area,
+    #     weight=-2.0,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #         "area_label_idx": [3,4],
+    #         "distance_threshold": 0.8,
+    #     }
     # )
 
-    #  penalty for being close to the obstacles
-    close_to_obstacle = RewTerm(
-        func=mdp.obstacle_distance,
-        weight=-2.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 2.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar")},
-    )
+    # #  penalty for being close to the obstacles
+    # close_to_obstacle = RewTerm(
+    #     func=mdp.obstacle_distance,
+    #     weight=-2.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    #     params={"threshold": 2.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar")},
+    # )
 
     # TODO add penality for obstacles being in front of the robot
 
-    obstacle_in_front_narrow = RewTerm(
-        func=mdp.obstacle_distance_in_front,
-        weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 2.0, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 30.0},
-    )
+    # obstacle_in_front_narrow = RewTerm(
+    #     func=mdp.obstacle_distance_in_front,
+    #     weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    #     params={"threshold": 2.0, "dist_std": 1.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 30.0},
+    # )
 
-    obstacle_in_front_wide = RewTerm(
-        func=mdp.obstacle_distance_in_front,
-        weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
-        params={"threshold": 1.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60.0},
-    )
+    # obstacle_in_front_wide = RewTerm(
+    #     func=mdp.obstacle_distance_in_front,
+    #     weight=-1.0,  # Dense Reward of [-0.1, 0.0] --> Max Episode Penalty: -1.0
+    #     params={"threshold": 1.0, "dist_std": 0.5, "dist_sensor": SceneEntityCfg("lidar"), "degrees": 60.0},
+    # )
 
     # far_from_obstacle = RewTerm(
     #     func=mdp.obstacle_distance,
@@ -790,6 +721,14 @@ class TerminationsCfg:
         },
         # TODO: @vairaviv check what this timeout does exactly
         time_out=True,
+    )
+
+    in_restricted_area = DoneTerm(
+        func=mdp.in_restricted_area,
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "area_label_idx": [4],
+        }
     )
 
     # update_commands = DoneTerm(
@@ -857,27 +796,27 @@ class SFMSemanticBaseEnvCfg(ManagerBasedRLEnvCfg):
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
 
-        self.scene.lidar = RayCasterCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/base",
-            update_period=1 / self.fz_planner,  # 0.1, lidar hz =  planner hz = 10
-            offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
-            attach_yaw_only=True,
-            pattern_cfg=patterns.LidarPatternCfg(
-                channels=1,
-                vertical_fov_range=(0.0, 0.0),
-                horizontal_fov_range=(0, 360),
-                horizontal_res=1,
-            ),
-            max_distance=100.0,
-            drift_range=(-0.0, 0.0),
-            debug_vis=True,
-            history_length=1,
-            # mesh_prim_paths=["/World/ground", self.scene.obstacle.prim_path],
-            visualizer_cfg=MY_RAY_CASTER_MARKER_CFG.replace(prim_path="/Visuals/RayCaster"),
-            mesh_prim_paths=["/World/ground", "/World/envs/env_.*/SFM_Obstacle"],  # self.scene.sfm_obstacle.prim_path, "/World/envs/env_.*/SFM_Obstacle", "{ENV_REGEX_NS}/SFM_Obstacle", self.scene.obstacle.prim_path
-            # mesh_prim_paths=["/World/ground"], # TODO add the obstacles in the lidar mesh_prim_path
-            track_mesh_transforms=True,
-            # max_meshes=32,
-            # mesh_ids_to_keep=[0],  # terrain id
-        )
+        # self.scene.lidar = RayCasterCfg(
+        #     prim_path="{ENV_REGEX_NS}/Robot/base",
+        #     update_period=1 / self.fz_planner,  # 0.1, lidar hz =  planner hz = 10
+        #     offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
+        #     attach_yaw_only=True,
+        #     pattern_cfg=patterns.LidarPatternCfg(
+        #         channels=1,
+        #         vertical_fov_range=(0.0, 0.0),
+        #         horizontal_fov_range=(0, 360),
+        #         horizontal_res=1,
+        #     ),
+        #     max_distance=100.0,
+        #     drift_range=(-0.0, 0.0),
+        #     debug_vis=False,
+        #     history_length=1,
+        #     # mesh_prim_paths=["/World/ground", self.scene.obstacle.prim_path],
+        #     visualizer_cfg=MY_RAY_CASTER_MARKER_CFG.replace(prim_path="/Visuals/RayCaster"),
+        #     mesh_prim_paths=["/World/ground", "/World/envs/env_.*/SFM_Obstacle"],  # self.scene.sfm_obstacle.prim_path, "/World/envs/env_.*/SFM_Obstacle", "{ENV_REGEX_NS}/SFM_Obstacle", self.scene.obstacle.prim_path
+        #     # mesh_prim_paths=["/World/ground"], # TODO add the obstacles in the lidar mesh_prim_path
+        #     track_mesh_transforms=True,
+        #     # max_meshes=32,
+        #     # mesh_ids_to_keep=[0],  # terrain id
+        # )
 

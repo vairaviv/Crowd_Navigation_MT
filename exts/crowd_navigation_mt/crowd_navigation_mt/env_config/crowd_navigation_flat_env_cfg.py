@@ -316,7 +316,7 @@ class EventCfg:
         params={
             # "yaw_range": (0.0, 0.0),
             "additive_heading_range": {"yaw": (-3.14, 3.14)},
-            "goal_command_generator_name": "robot_goal",
+            "command_name": "robot_goal",
         },
     )
 

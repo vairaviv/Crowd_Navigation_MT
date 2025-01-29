@@ -25,17 +25,6 @@ from . import agents, navigation_env_cfg
 # Flat Terrain Tasks
 ##########################################
 
-# flat terrain for testing
-gym.register(
-    id="Isaac-CrowdNavigation-Semantic-Flat-Anymal-D-v0",
-    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtSFMSemanticCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOTeacherBaseCfg,
-    },
-)
-
 # flat terrain with Actor Critic Beta Module
 gym.register(
     id="Isaac-CrowdNavigation-Teacher-Flat-Beta-Anymal-D-v0",
@@ -294,14 +283,25 @@ gym.register(
 ##########################################
 # SFM Obstacles Semantic Map Tasks
 ##########################################
-
-# SFM obstacles, Semantic Map, PPO, 2D CNN
+# flat terrain for testing
 gym.register(
-    id="Isaac-CrowdNavigation-Teacher-SFMObs-2DCNN-Anymal-D-v0",
+    id="Isaac-CrowdNavigation-Semantic-Flat-Anymal-D-v0",
     entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
-        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtBaseSFMCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_sfm_cfg.PPOBaseBetaSFMLidar2DCNNCfg,
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtSFMSemanticCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.PPOSFMNoGruConvCfg,
+    },
+)
+
+
+# SFM obstacles, Semantic Map, PPO, 2D CNN
+gym.register(
+    id="Isaac-CrowdNavigation-Teacher-SFMObs-Semantic-2DCNN-Anymal-D-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.AnymalDExtSFMSemanticCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_sfm_cfg.PPOBaseBeta2DCNNSemanticCfg,
     },
 )
