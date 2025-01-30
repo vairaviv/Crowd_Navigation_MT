@@ -704,3 +704,44 @@ class RslRlPpoActorCriticBetaLidar2DCNNCfg:
 
     activation: str = MISSING
     """The activation function for the actor and critic networks."""
+
+
+@configclass
+class RslRlPpoActorCriticBeta2DCNNSemanticCfg:
+    """Configuration for the PPO actor-critic networks. Actor and critic networks have the same architecture."""
+
+    class_name: str = "ActorCriticBeta2DCNN"
+    """The policy class name. Default is ActorCritic."""
+
+    beta_initial_logit: float = MISSING
+    """The initial mean of the beta distribution."""
+
+    beta_initial_scale: float = MISSING
+    """The initial scale of the beta distribution."""
+
+    proprio_dim: int = MISSING
+    """dimension of proprioceptive observation passed directly through an MLP"""
+
+    semantic_map_dim: list[int] = MISSING
+    """the dim of the semantic map in: [#Channels, H, W], passed through CNN first"""
+
+    proprio_layer_dim: list[int] = MISSING
+    """The hidden dimensions of the target position and cpg state."""
+
+    semantic_cnn_channel_dim: list[int] = MISSING
+    """The hidden dimensions of the lidar compress cnn layers, shared across history."""
+
+    semantic_cnn_kernel_sizes: list[int] = MISSING
+    """The kernel sizes of the lidar compress cnn layers, shared across history."""
+
+    semantic_cnn_strides: list[int] = MISSING
+    """The strides of the lidar compress cnn layers, shared across history."""
+
+    semantic_cnn_to_mlp_layer_dim: list[int] = MISSING
+    """The hidden dimensions of the lidar compress cnn to mlp layers, shared across history."""
+
+    nav_layer_dim: list[int] = MISSING
+    """The hidden dimensions of the output layers."""
+
+    activation: str = MISSING
+    """The activation function for the actor and critic networks."""
