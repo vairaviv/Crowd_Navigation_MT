@@ -112,7 +112,7 @@ class SFMSemanticSceneCfg(InteractiveSceneCfg):
         #     project_uvw=True,
         # ),
         debug_vis=False,
-        semantic_terrain_resolution=0.2,
+        semantic_terrain_resolution=0.1,
         debug_plot=False,  # remove if not needed anymore defaults to False
     )
     
@@ -262,7 +262,7 @@ class CommandsCfg:
         debug_vis=False,
         resampling_time_range=(100000000.0,100000000.0),
         robot_to_goal_line_vis=False,
-        num_sfm_obstacle=0,
+        num_sfm_obstacle=10,
     )
     # --------------------------------------------------------
     # # target pos for the obstacle random goal samplings from Nav-Suite
@@ -504,8 +504,8 @@ class ObservationsCfg:
             },
             asset_cfg=SceneEntityCfg("robot"),
             obstacle_cfg=SceneEntityCfg("sfm_obstacle"),
-            obs_range=[10.0, 10.0],
-            obstacle_buffer_radius=1.2, # in m
+            obs_range=[5.0, 5.0],
+            obstacle_buffer_radius=1.2,  # in m
             plot_env_id=27,
             debug_plot=False,  # TODO: remove before training slows down the training time
         )
