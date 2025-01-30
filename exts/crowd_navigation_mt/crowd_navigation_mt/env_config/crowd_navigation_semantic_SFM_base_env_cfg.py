@@ -262,7 +262,7 @@ class CommandsCfg:
         debug_vis=False,
         resampling_time_range=(100000000.0,100000000.0),
         robot_to_goal_line_vis=False,
-        num_sfm_obstacle=10,
+        num_sfm_obstacle=0,
     )
     # --------------------------------------------------------
     # # target pos for the obstacle random goal samplings from Nav-Suite
@@ -574,6 +574,10 @@ class EventCfg:
         },
     )
 
+    # static_obstacle = EventTerm(
+    #     func=terrains.
+    # )
+
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
@@ -624,7 +628,7 @@ class RewardsCfg:
     # )
 
     episode_termination = RewTerm(
-        func=mdp.is_terminated,
+        func=mdp.is_terminated_not_on_reaching_goal,
         weight=-5.0,  # Sparse Reward of {-20.0, 0.0} --> Max Episode Penalty: -20.0
     )
 
@@ -727,7 +731,7 @@ class TerminationsCfg:
         func=mdp.in_restricted_area,
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "area_label_idx": [4],
+            "area_label_idx": [3,4,5],
         }
     )
 

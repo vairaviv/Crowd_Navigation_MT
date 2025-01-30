@@ -72,6 +72,19 @@ Navigation rewards.
 """
 
 
+def is_terminated_not_on_reaching_goal(
+        env: ManagerBasedRLEnv,
+        asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+):
+    failure = (
+        env.termination_manager.terminated
+        & ~env.termination_manager._term_dones["goal_reached"]
+    )
+
+    reward = torch.where(failure, torch.ones_like(failure).int(), torch.zeros_like(failure).int()) / env.max_episode_length_s
+    return reward
+
+
 def within_social_norms(
         env: ManagerBasedRLEnv,
         asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
@@ -100,7 +113,7 @@ def within_social_norms(
         on_crosswalk = semantic_map[robot_pos_to_idx[:, 0], robot_pos_to_idx[:, 1]] == 1
 
         adhered_to_norm = torch.logical_or(on_sidewalk, on_crosswalk)
-        reward[adhered_to_norm.argwhere().squeeze(1)] = 0  # 1 / env.max_episode_length_s
+        reward[adhered_to_norm.argwhere().squeeze(1)] = 1 / env.max_episode_length_s  # 0  # TODO: checking if this changes the learning process
 
         on_restricted_area = ~adhered_to_norm
         reward[on_restricted_area.argwhere().squeeze(1)] = - 1 / env.max_episode_length_s
