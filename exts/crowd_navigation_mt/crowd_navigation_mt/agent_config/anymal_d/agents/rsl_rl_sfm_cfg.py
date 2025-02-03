@@ -126,10 +126,10 @@ class PPOBaseBetaSFMLidar2DCNNCfg(RslRlOnPolicyRunnerCfg):
 ##########################################
 # With semantics observations
 ##########################################
-SEM_MAP_H = int(5 / 0.1)  # observation range divided by the map resolution
-SEM_MAP_W = int(5 / 0.1)
+SEM_MAP_H = int(10 / 0.2)  # observation range divided by the map resolution
+SEM_MAP_W = int(10 / 0.2)
 SEM_CHANNELS = 6
-PROP_DIM = 10
+PROP_DIM = 2 + 8 + 3 + 3  # target_pos, cpg_state, base_lin_vel, base_ang_vel
 
 @configclass
 class PPOBaseBeta2DCNNSemanticCfg(RslRlOnPolicyRunnerCfg):

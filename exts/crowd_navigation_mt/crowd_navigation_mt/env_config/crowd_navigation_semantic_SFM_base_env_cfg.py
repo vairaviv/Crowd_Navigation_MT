@@ -257,6 +257,7 @@ class CommandsCfg:
     # )
 
     sfm_obstacle_target_pos = mdp.SemanticConsecutiveGoalCommandCfg(
+        sampling_radius=20,
         resample_distance_threshold=0.2,
         asset_name="sfm_obstacle",
         debug_vis=False,
@@ -496,6 +497,14 @@ class ObservationsCfg:
         #     sensor_cfg=SceneEntityCfg("lidar"),
         #     return_pose_history=True,
         # )
+
+        base_lin_vel = ObsTerm(
+            func=mdp.base_lin_vel,
+        )
+
+        base_ang_vel = ObsTerm(
+            func=mdp.base_ang_vel,
+        )
 
         semantic_map = SemanticMapObsCfg(
             func=mdp.SemanticMapObs,

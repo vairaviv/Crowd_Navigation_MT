@@ -52,7 +52,7 @@ class SemanticConsecutiveGoalCommand(SemanticGoalCommand):
         self.metrics["error_pos"] = torch.zeros(self.num_envs, device=self.device)
 
     def __str__(self) -> str:
-        msg = "SemanticConsecutiveGoalCommandGenerator:\n"
+        msg = "SemanticConsecutiveGoalCommand:\n"
         msg += f"\tCommand dimension: {tuple(self.command.shape[1:])}\n"
         msg += f"\tResampling time range: {self.cfg.resampling_time_range}\n"
         return msg
@@ -80,6 +80,7 @@ class SemanticConsecutiveGoalCommand(SemanticGoalCommand):
         #     self.pos_command_w[env_ids, :2] = self.valid_pos_w[random_idx, :2]
         else:  
             idx = self.point_kd_tree.query_ball_point(self.robot.data.root_pos_w[env_ids, :2].cpu(), r=self.radius_lvl[env_ids].cpu())
+            self.pos_spawn_w[env_ids, :2] = self.robot.data.root_pos_w[env_ids, :2]
             #random_idx = torch.randint(0, self.valid_pos_idx.size(0), (len(env_ids),), device=self.device)
             try:
                 random_idx = torch.tensor(
@@ -92,10 +93,22 @@ class SemanticConsecutiveGoalCommand(SemanticGoalCommand):
                         ) # evalutates both and easier for debugging
                         for list in idx
                     ]
-                )
+                ).to(device=self.device)
+                # if self.pos_spawn_w[]
             except IndexError:
                 print("[DEBUG]: the root position of the robot is at an invalid position")
                 random_idx = torch.randint(0, self.valid_pos_w.shape[0], (len(env_ids),))
+            
+            if torch.any(
+                torch.isclose(self.valid_pos_w[random_idx, 0], self.pos_spawn_w[env_ids, 0], 1e-4) & 
+                torch.isclose(self.valid_pos_w[random_idx, 1], self.pos_spawn_w[env_ids, 1], 1e-4)
+            ):
+                mask = (
+                    torch.isclose(self.valid_pos_w[random_idx, 0], self.pos_spawn_w[env_ids, 0], 1e-4) & 
+                    torch.isclose(self.valid_pos_w[random_idx, 1], self.pos_spawn_w[env_ids, 1], 1e-4)
+                ).to(device=self.device)
+                random_idx[mask] -= 1  # this will never be out of index as list[-1] is valid too
+                print("[DEBUG]: Position Command and Spawn location are the same!")
             self.pos_command_w[env_ids, :2] = self.valid_pos_w[random_idx, :2] 
             
     def _update_command(self):
