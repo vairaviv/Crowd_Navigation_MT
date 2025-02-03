@@ -144,7 +144,7 @@ def reset_robot_position_semantic(
     # TODO: @vairaviv remove after debugging
     if torch.any(
         torch.isclose(positions[:, 0], goal_cmd_geneator.pos_command_w[env_ids, 0], 1e-4) & 
-        torch.isclose(positions[:, 1], goal_cmd_geneator.pos_command_w[env_ids, 0], 1e-4)
+        torch.isclose(positions[:, 1], goal_cmd_geneator.pos_command_w[env_ids, 1], 1e-4)
     ):
         print("[DEBUG]: Position Command and Spawn location are the same!")
         time.sleep(10)

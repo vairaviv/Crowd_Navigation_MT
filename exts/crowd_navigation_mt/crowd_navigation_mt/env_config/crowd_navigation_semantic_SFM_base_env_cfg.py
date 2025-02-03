@@ -513,7 +513,7 @@ class ObservationsCfg:
             },
             asset_cfg=SceneEntityCfg("robot"),
             obstacle_cfg=SceneEntityCfg("sfm_obstacle"),
-            obs_range=[5.0, 5.0],
+            obs_range=[10.0, 10.0],
             obstacle_buffer_radius=1.2,  # in m
             plot_env_id=27,
             debug_plot=False,  # TODO: remove before training slows down the training time
