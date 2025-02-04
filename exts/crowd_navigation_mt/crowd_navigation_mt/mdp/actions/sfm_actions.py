@@ -177,9 +177,9 @@ class SFMAction(ActionTerm):
             #     robot_directions = self._get_robots_directions()
 
             total_force = goal_direction - stat_obst_directions - sfm_obst_directions 
-            normed_total_force = total_force / (torch.norm(total_force, p=2, dim=1).unsqueeze(1).expand(self.num_envs, -1) + 0.0001)
+            normed_total_force = total_force / (torch.norm(total_force, p=2, dim=1).unsqueeze(1).expand(self.num_sfm_ostacle, -1) + 0.0001)
 
-            self._obstacles_actions_vel[:] = normed_total_force * self.cfg.max_sfm_velocity 
+            self._obstacles_actions_vel[:self.num_sfm_ostacle] = normed_total_force * self.cfg.max_sfm_velocity / self.cfg.low_level_decimation
             
         self._counter += 1
 
@@ -241,9 +241,9 @@ class SFMAction(ActionTerm):
 
     def _get_goal_directions(self):
         """Compute the direction for all agents in all envs."""
-        target_positions = self._env.command_manager.get_term(self.cfg.command_term_name).pos_command_w[:, :2]
+        target_positions = self._env.command_manager.get_term(self.cfg.command_term_name).pos_command_w[:self.num_sfm_ostacle, :2]
         # target_positions = self._env.observation_manager.compute_group(group_name=self.cfg.observation_group)[:,:2]
-        current_positions = self._asset.data.root_pos_w[:, :2]
+        current_positions = self._asset.data.root_pos_w[:self.num_sfm_ostacle, :2]
 
         directions = target_positions - current_positions
 
@@ -271,11 +271,11 @@ class SFMAction(ActionTerm):
         """Compute the direction of static obstacles"""
 
         # get the ids of the close raycasted mesh points
-        lidar_distances = self._env.scene.sensors[self.cfg.obstacle_sensor].data.distances
+        lidar_distances = self._env.scene.sensors[self.cfg.obstacle_sensor].data.distances[:self.num_sfm_ostacle]
         mask = lidar_distances < self.cfg.stat_obstacle_radius
 
         # lidar_directions = self._get_2d_direction().unsqueeze(0).expand(self.num_envs, -1, -1)
-        lidar_directions = self._env.scene.sensors[self.cfg.obstacle_sensor].ray_directions_w[:,:,:2]
+        lidar_directions = self._env.scene.sensors[self.cfg.obstacle_sensor].ray_directions_w[:self.num_sfm_ostacle, :, :2]
 
         filtered_distances = torch.where(mask, lidar_distances, torch.zeros_like(lidar_distances)).to(device=self.device)
         
@@ -306,12 +306,12 @@ class SFMAction(ActionTerm):
     def _get_sfm_obstacles_directions(self):
         """Compute the repulsive forces due to other agents."""
         # Get the positions and velocities of the SFM obstacles (other agents)
-        agent_positions = self._sfm_obstacles_positions_w[:, :2]  # Current positions
-        agent_velocities = self._sfm_obstacles_velocity_w[:, :2]  # Current velocities
+        agent_positions = self._sfm_obstacles_positions_w[:self.num_sfm_ostacle, :2]  # Current positions
+        agent_velocities = self._sfm_obstacles_velocity_w[:self.num_sfm_ostacle, :2]  # Current velocities
 
         # Current agent's position (assuming each environment has one agent being modeled)
-        current_agent_positions = self._asset.data.root_pos_w[:, :2]
-        current_agent_velocities = self._asset.data.root_vel_w[:, :2]
+        current_agent_positions = self._asset.data.root_pos_w[:self.num_sfm_ostacle, :2]
+        current_agent_velocities = self._asset.data.root_vel_w[:self.num_sfm_ostacle, :2]
 
         # Compute relative positions and distances
         relative_positions = agent_positions.unsqueeze(1) - current_agent_positions.unsqueeze(0)
@@ -347,6 +347,11 @@ class SFMAction(ActionTerm):
 
         # Sum all direction vectors to get the resulting force vector
         resulting_force = weighted_directions.sum(dim=0)
+
+        # # Add zero force to the non-active obstacles
+        # resulting_force = torch.cat(
+        #     (resulting_force, torch.zeros((self.num_envs - self.num_sfm_ostacle, 2), device=self.device))
+        # )
 
         return resulting_force 
     

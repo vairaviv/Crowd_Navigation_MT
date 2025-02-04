@@ -348,7 +348,7 @@ class ActionsCfg:
         robot_visible=False,  # currently not implemented still a TODO
         robot_radius=1.5,
         debug_vis=False,
-        max_sfm_velocity=0.2,
+        max_sfm_velocity=0.5,
         stat_obstacle_radius=1.0,
         dyn_obstacle_radius=1.0,
         command_term_name="sfm_obstacle_target_pos",
