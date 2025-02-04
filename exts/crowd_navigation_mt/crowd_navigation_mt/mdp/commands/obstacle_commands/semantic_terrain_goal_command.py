@@ -242,7 +242,9 @@ class SemanticGoalCommand(GoalCommandBaseTerm):
                     torch.isclose(self.valid_pos_w[random_idx, 0], self.pos_spawn_w[env_ids, 0], 1e-4) & 
                     torch.isclose(self.valid_pos_w[random_idx, 1], self.pos_spawn_w[env_ids, 1], 1e-4)
                 ).to(device=self.device)
-                random_idx[mask] -= 1  # this will never be out of index as list[-1] is valid too
+                if torch.any(random_idx[mask] == 0):
+                    print("[DEBUG]: SemanticGoalCommand: The random idx is 0!")
+                random_idx[mask] -= 1  # this will never be out of index as list[-1] is valid too, and else it samples from 1 to valid_pos_w.shape[0]
                 print("[DEBUG]: SemanticGoalCommand: Position Command and Spawn location are the same!")
             self.pos_command_w[env_ids, :2] = self.valid_pos_w[random_idx, :2] 
 

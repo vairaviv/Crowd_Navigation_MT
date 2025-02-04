@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     # from crowd_navigation_mt.mdp.commands import RobotGoalCommand, DirectionCommand
     from crowd_navigation_mt.mdp.commands import DirectionCommand
     from nav_tasks.mdp.commands import GoalCommand as RobotGoalCommand
+    from crowd_navigation_mt.mdp.commands import SemanticGoalCommand, SemanticConsecutiveGoalCommand
 
 def feet_air_time(env: ManagerBasedRLEnv, command_name: str, sensor_cfg: SceneEntityCfg, threshold: float) -> torch.Tensor:
     """Reward long steps taken by the feet using L2-kernel.
@@ -144,7 +145,7 @@ def goal_reached(
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    goal_cmd_geneator: RobotGoalCommand = env.command_manager._terms[command_name]
+    goal_cmd_geneator: RobotGoalCommand | SemanticGoalCommand = env.command_manager._terms[command_name]
     # compute the reward
     distance_goal = torch.norm(asset.data.root_pos_w[:, :2] - goal_cmd_geneator.pos_command_w[:, :2], dim=1, p=2)
     abs_velocity = torch.norm(asset.data.root_vel_w[:, 0:3], dim=1, p=2)
@@ -164,6 +165,7 @@ def goal_reached(
     env_ids = torch.nonzero(reward).flatten()
 
     # TODO check if it is done somewhere else
+    # it is excluded now
     # goal_cmd_geneator.increment_goal_distance(env_ids)
     if env_ids.numel() > 0:
         goal_cmd_geneator._resample_command(env_ids)

@@ -263,7 +263,7 @@ class CommandsCfg:
         debug_vis=False,
         resampling_time_range=(100000000.0,100000000.0),
         robot_to_goal_line_vis=False,
-        num_sfm_obstacle=0,
+        num_sfm_obstacle=10,
     )
     # --------------------------------------------------------
     # # target pos for the obstacle random goal samplings from Nav-Suite
