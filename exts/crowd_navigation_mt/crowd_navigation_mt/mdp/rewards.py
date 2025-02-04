@@ -148,11 +148,18 @@ def goal_reached(
     # compute the reward
     distance_goal = torch.norm(asset.data.root_pos_w[:, :2] - goal_cmd_geneator.pos_command_w[:, :2], dim=1, p=2)
     abs_velocity = torch.norm(asset.data.root_vel_w[:, 0:3], dim=1, p=2)
+    
+    if distance_goal.shape != abs_velocity.shape:
+        print(f"[DEBUG]: Goal Distance is of shape: {distance_goal.shape}")
+        print(f"[DEBUG]: Absolute Velocity is of shape: {abs_velocity.shape}")
+    
     reward = torch.where(
         distance_goal < distance_threshold, torch.ones_like(distance_goal), torch.zeros_like(distance_goal)
     )
     reward = torch.where(abs_velocity < speed_threshold, reward, torch.zeros_like(abs_velocity))
     
+    if reward.shape[0] != env.num_envs:
+        print(f"[DEBUG]: Goal Reached Reward is of shape: {reward.shape}")
     
     env_ids = torch.nonzero(reward).flatten()
 
@@ -190,7 +197,7 @@ def goal_closeness(
     # TODO: @ vairaviv remove after debugging
     if torch.any(max_dist <= 1e-6):
         max_dist[max_dist==0.0] = 1e-6
-        print("[DEBUG]: pos_command and spawn_command are the same! Not terminated properly or spawned at command?")
+        print("[DEBUG]: Goal_closeness Reward: pos_command and spawn_command are the same!")
         # time.sleep(10)
 
     # compute the reward

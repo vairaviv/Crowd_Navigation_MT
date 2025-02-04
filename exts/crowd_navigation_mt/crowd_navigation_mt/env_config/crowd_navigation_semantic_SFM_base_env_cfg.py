@@ -263,7 +263,7 @@ class CommandsCfg:
         debug_vis=False,
         resampling_time_range=(100000000.0,100000000.0),
         robot_to_goal_line_vis=False,
-        num_sfm_obstacle=10,
+        num_sfm_obstacle=0,
     )
     # --------------------------------------------------------
     # # target pos for the obstacle random goal samplings from Nav-Suite
@@ -440,42 +440,42 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = True
 
-    @configclass
-    class DataLoggingCfg(ObsGroup):
-        """Observations for data logging."""
-        # Positions
-        robot_position = ObsTerm(func=mdp.metrics_robot_position)
-        start_position = ObsTerm(func=mdp.metrics_start_position)
-        goal_position = ObsTerm(func=mdp.metrics_goal_position)
-        # Path Length
-        path_length = ObsTerm(func=mdp.metrics_path_length)
-        # Episode Signals
-        timeout_signal = ObsTerm(func=mdp.metrics_timeout_signal)
-        termination_signal = ObsTerm(func=mdp.metrics_termination_signal)
-        dones_signal = ObsTerm(func=mdp.metrics_dones_signal)
-        goal_reached = ObsTerm(
-            func=mdp.metrics_goal_reached, params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD}
-        )  # do not care about speed
-        undesired_contacts = ObsTerm(
-            func=mdp.metrics_undesired_contacts,
-            params={"threshold": 0.01, "body_names": [".*THIGH", ".*HIP", ".*SHANK", "base"]},
-        )
-        episode_length = ObsTerm(func=mdp.metrics_episode_length)
+    # @configclass
+    # class DataLoggingCfg(ObsGroup):
+    #     """Observations for data logging."""
+    #     # Positions
+    #     robot_position = ObsTerm(func=mdp.metrics_robot_position)
+    #     start_position = ObsTerm(func=mdp.metrics_start_position)
+    #     goal_position = ObsTerm(func=mdp.metrics_goal_position)
+    #     # Path Length
+    #     path_length = ObsTerm(func=mdp.metrics_path_length)
+    #     # Episode Signals
+    #     timeout_signal = ObsTerm(func=mdp.metrics_timeout_signal)
+    #     termination_signal = ObsTerm(func=mdp.metrics_termination_signal)
+    #     dones_signal = ObsTerm(func=mdp.metrics_dones_signal)
+    #     goal_reached = ObsTerm(
+    #         func=mdp.metrics_goal_reached, params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD}
+    #     )  # do not care about speed
+    #     undesired_contacts = ObsTerm(
+    #         func=mdp.metrics_undesired_contacts,
+    #         params={"threshold": 0.01, "body_names": [".*THIGH", ".*HIP", ".*SHANK", "base"]},
+    #     )
+    #     episode_length = ObsTerm(func=mdp.metrics_episode_length)
 
-        # For Computing Rewards
-        robot_position_history = ObservationHistoryTermCfg(
-            func=mdp.ObservationHistory,
-            params={"method": "get_history_of_positions"},
-            # params={"kwargs" : {"method": "get_history_of_positions"}},
-            history_length_actions=10,
-            history_length_positions=10,
-            history_time_span_positions=5,
-            history_time_span_actions=5
-        )
+    #     # For Computing Rewards
+    #     robot_position_history = ObservationHistoryTermCfg(
+    #         func=mdp.ObservationHistory,
+    #         params={"method": "get_history_of_positions"},
+    #         # params={"kwargs" : {"method": "get_history_of_positions"}},
+    #         history_length_actions=10,
+    #         history_length_positions=10,
+    #         history_time_span_positions=5,
+    #         history_time_span_actions=5
+    #     )
         
-        def __post_init__(self):
-            self.enable_corruption = False
-            self.concatenate_terms = False
+    #     def __post_init__(self):
+    #         self.enable_corruption = False
+    #         self.concatenate_terms = False
 
     @configclass
     class TeacherPolicyObsCfg(ObsGroup):
@@ -530,8 +530,8 @@ class ObservationsCfg:
     # # obstacles
     sfm_obstacle_control_obs: ObstacleControlCfg = ObstacleControlCfg()
 
-    # logging
-    metrics: DataLoggingCfg = DataLoggingCfg()
+    # # logging
+    # metrics: DataLoggingCfg = DataLoggingCfg()
 
     # policy
     policy: ObsGroup = TeacherPolicyObsCfg()

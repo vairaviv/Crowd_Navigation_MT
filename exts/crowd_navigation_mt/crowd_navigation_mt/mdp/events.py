@@ -148,7 +148,7 @@ def reset_robot_position_semantic(
         torch.isclose(goal_cmd_geneator.pos_spawn_w[env_ids, 0], goal_cmd_geneator.pos_command_w[env_ids, 0], 1e-4) & 
         torch.isclose(goal_cmd_geneator.pos_spawn_w[env_ids, 1], goal_cmd_geneator.pos_command_w[env_ids, 1], 1e-4)
     ):
-        print("[DEBUG]: Position Command and Spawn location are the same!")
+        print("[DEBUG]: reset robot position semantic Position Command and Spawn location are the same!")
         time.sleep(10)
         
 
