@@ -134,17 +134,19 @@ def reset_robot_position_semantic(
     # positions - based on given start points (command generator)
     # pos_offset = torch.zeros_like(root_states[:, 0:3])
 
-    # get valid spawn locations from the command
-    random_idx = torch.randint(0, goal_cmd_geneator.valid_pos_idx.size(0), (len(env_ids),), device=goal_cmd_geneator.device)
-    positions = goal_cmd_geneator.valid_pos_w[random_idx, :]
+    # # get valid spawn locations from the command
+    # random_idx = torch.randint(0, goal_cmd_geneator.valid_pos_idx.size(0), (len(env_ids),), device=goal_cmd_geneator.device)
+    # positions = goal_cmd_geneator.valid_pos_w[random_idx, :]
 
-    # overwrite spawn position in goal command for other calculations
-    goal_cmd_geneator.pos_spawn_w[env_ids] = positions
+    # # overwrite spawn position in goal command for other calculations
+    # goal_cmd_geneator.pos_spawn_w[env_ids] = positions
+
+    goal_cmd_geneator._resample_command(env_ids)
 
     # TODO: @vairaviv remove after debugging
     if torch.any(
-        torch.isclose(positions[:, 0], goal_cmd_geneator.pos_command_w[env_ids, 0], 1e-4) & 
-        torch.isclose(positions[:, 1], goal_cmd_geneator.pos_command_w[env_ids, 1], 1e-4)
+        torch.isclose(goal_cmd_geneator.pos_spawn_w[env_ids, 0], goal_cmd_geneator.pos_command_w[env_ids, 0], 1e-4) & 
+        torch.isclose(goal_cmd_geneator.pos_spawn_w[env_ids, 1], goal_cmd_geneator.pos_command_w[env_ids, 1], 1e-4)
     ):
         print("[DEBUG]: Position Command and Spawn location are the same!")
         time.sleep(10)
@@ -161,7 +163,7 @@ def reset_robot_position_semantic(
     velocities = root_states[:, 7:13]
 
     # set into the physics simulation
-    asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
+    asset.write_root_pose_to_sim(torch.cat([goal_cmd_geneator.pos_spawn_w[env_ids], orientations], dim=-1), env_ids=env_ids)
     asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
 
 

@@ -170,12 +170,20 @@ class SemanticGoalCommand(GoalCommandBaseTerm):
         if self.grid_map is None:
             self.pos_spawn_w[env_ids, :2] = self._env.scene.env_origins[env_ids, :2]
         else:
-            idx = self.point_kd_tree.query_ball_point(self.pos_command_w[env_ids, :2].cpu(), r=self.radius_lvl[env_ids].cpu())
-            #random_idx = torch.randint(0, self.valid_pos_idx.size(0), (len(env_ids),), device=self.device)
-            random_idx = torch.tensor([list[-1] for list in idx])
-            self.pos_spawn_w[env_ids, :2] = self.valid_pos_w[random_idx, :2] 
+            # idx = self.point_kd_tree.query_ball_point(self.pos_command_w[env_ids, :2].cpu(), r=self.radius_lvl[env_ids].cpu())
+            # #random_idx = torch.randint(0, self.valid_pos_idx.size(0), (len(env_ids),), device=self.device)
+            # random_idx = torch.tensor([list[-1] for list in idx])
+            # self.pos_spawn_w[env_ids, :2] = self.valid_pos_w[random_idx, :2] 
 
-            new_goal_distance = torch.norm((self.pos_command_w-self.pos_spawn_w), dim=-1)  
+            # new_goal_distance = torch.norm((self.pos_command_w-self.pos_spawn_w), dim=-1)  
+
+            # get valid spawn locations from the command
+            random_idx = torch.randint(0, self.valid_pos_idx.size(0), (len(env_ids),), device=self.device)
+            positions = self.valid_pos_w[random_idx, :]
+
+            # overwrite spawn position in goal command for other calculations
+            self.pos_spawn_w[env_ids] = positions    
+
 
     def _resample_command(self, env_ids: Sequence[int]):
         """sample new goal positions.
@@ -186,22 +194,57 @@ class SemanticGoalCommand(GoalCommandBaseTerm):
         # else:
         #     random_idx = torch.randint(0, self.valid_pos_idx.size(0), (len(env_ids),), device=self.device)
         #     self.pos_command_w[env_ids, :2] = self.valid_pos_w[random_idx, :2]
-        else:  
-            idx = self.point_kd_tree.query_ball_point(self.robot.data.root_pos_w[env_ids, :2].cpu(), r=self.radius_lvl[env_ids].cpu())
+
+        # else:  
+        #     self._resample_spawn_positions(env_ids)
+        #     idx = self.point_kd_tree.query_ball_point(self.pos_spawn_w[env_ids, :2].cpu(), r=self.radius_lvl[env_ids].cpu())
+        #     #random_idx = torch.randint(0, self.valid_pos_idx.size(0), (len(env_ids),), device=self.device)
+        #     try:
+        #         # random_idx = torch.tensor([list[-1] for list in idx])
+        #         random_idx = torch.tensor(
+        #             [
+        #                 list[torch.randint(0, len(list), (1,)).item()] 
+        #                 for list in idx
+        #             ]
+        #         )
+        #     except IndexError:
+        #         print("[DEBUG]: the root position of the robot is at an invalid position")
+        #         random_idx = torch.randint(0, self.valid_pos_w.shape[0], (len(env_ids),))
+        #     self.pos_command_w[env_ids, :2] = self.valid_pos_w[random_idx, :2] 
+
+        else: 
+            self._resample_spawn_positions(env_ids)
+            idx = self.point_kd_tree.query_ball_point(self.pos_spawn_w[env_ids, :2].cpu(), r=self.radius_lvl[env_ids].cpu())
+            # self.pos_spawn_w[env_ids, :2] = self.robot.data.root_pos_w[env_ids, :2]
             #random_idx = torch.randint(0, self.valid_pos_idx.size(0), (len(env_ids),), device=self.device)
             try:
-                # random_idx = torch.tensor([list[-1] for list in idx])
                 random_idx = torch.tensor(
                     [
                         list[torch.randint(0, len(list), (1,)).item()] 
+                        if len(list) > 0 
+                        else (
+                            print(f"[INFO]:  SemanticGoalCommand: Empty list encountered, using self.valid_pos_w instead") or
+                            torch.randint(0, self.valid_pos_w.shape[0], (1,)).item()
+                        ) # evalutates both and easier for debugging
                         for list in idx
                     ]
-                )
+                ).to(device=self.device)
+                # if self.pos_spawn_w[]
             except IndexError:
-                print("[DEBUG]: the root position of the robot is at an invalid position")
+                print("[DEBUG]: SemanticGoalCommand: the root position of the robot is at an invalid position")
                 random_idx = torch.randint(0, self.valid_pos_w.shape[0], (len(env_ids),))
+            
+            if torch.any(
+                torch.isclose(self.valid_pos_w[random_idx, 0], self.pos_spawn_w[env_ids, 0], 1e-4) & 
+                torch.isclose(self.valid_pos_w[random_idx, 1], self.pos_spawn_w[env_ids, 1], 1e-4)
+            ):
+                mask = (
+                    torch.isclose(self.valid_pos_w[random_idx, 0], self.pos_spawn_w[env_ids, 0], 1e-4) & 
+                    torch.isclose(self.valid_pos_w[random_idx, 1], self.pos_spawn_w[env_ids, 1], 1e-4)
+                ).to(device=self.device)
+                random_idx[mask] -= 1  # this will never be out of index as list[-1] is valid too
+                print("[DEBUG]: SemanticGoalCommand: Position Command and Spawn location are the same!")
             self.pos_command_w[env_ids, :2] = self.valid_pos_w[random_idx, :2] 
-
 
         failure = (
             self._env.termination_manager.terminated[env_ids]

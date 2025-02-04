@@ -88,7 +88,7 @@ class SemanticConsecutiveGoalCommand(SemanticGoalCommand):
                         list[torch.randint(0, len(list), (1,)).item()] 
                         if len(list) > 0 
                         else (
-                            print(f"[INFO]Empty list encountered, using self.valid_pos_w instead") or
+                            print(f"[INFO]: SemanticConsecutiveGoalCommand: Empty list encountered, using self.valid_pos_w instead") or
                             torch.randint(0, self.valid_pos_w.shape[0], (1,)).item()
                         ) # evalutates both and easier for debugging
                         for list in idx
@@ -96,7 +96,7 @@ class SemanticConsecutiveGoalCommand(SemanticGoalCommand):
                 ).to(device=self.device)
                 # if self.pos_spawn_w[]
             except IndexError:
-                print("[DEBUG]: the root position of the robot is at an invalid position")
+                print("[DEBUG]: SemanticConsecutiveGoalCommand: the root position of the robot is at an invalid position")
                 random_idx = torch.randint(0, self.valid_pos_w.shape[0], (len(env_ids),))
             
             if torch.any(
@@ -108,7 +108,7 @@ class SemanticConsecutiveGoalCommand(SemanticGoalCommand):
                     torch.isclose(self.valid_pos_w[random_idx, 1], self.pos_spawn_w[env_ids, 1], 1e-4)
                 ).to(device=self.device)
                 random_idx[mask] -= 1  # this will never be out of index as list[-1] is valid too
-                print("[DEBUG]: Position Command and Spawn location are the same!")
+                print("[DEBUG]: SemanticConsecutiveGoalCommand: Position Command and Spawn location are the same!")
             self.pos_command_w[env_ids, :2] = self.valid_pos_w[random_idx, :2] 
             
     def _update_command(self):
