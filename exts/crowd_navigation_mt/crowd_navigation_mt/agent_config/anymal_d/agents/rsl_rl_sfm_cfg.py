@@ -129,7 +129,7 @@ class PPOBaseBetaSFMLidar2DCNNCfg(RslRlOnPolicyRunnerCfg):
 SEM_MAP_H = int(10 / 0.1)  # observation range divided by the map resolution
 SEM_MAP_W = int(10 / 0.1)
 SEM_CHANNELS = 6
-PROP_DIM = 2 + 8 + 3 + 3  # target_pos, cpg_state, base_lin_vel, base_ang_vel
+PROP_DIM = 2 + 2 * 12 + 3 * 3 # target_pos: 2, cpg_state: 8, joint_pos: 12, joint_vel: 12, base_lin_vel: 3, base_ang_vel: 3, last_action: 3
 
 @configclass
 class PPOBaseBeta2DCNNSemanticCfg(RslRlOnPolicyRunnerCfg):

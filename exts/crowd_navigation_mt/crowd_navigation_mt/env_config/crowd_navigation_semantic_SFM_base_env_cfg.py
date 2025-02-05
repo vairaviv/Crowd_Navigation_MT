@@ -429,54 +429,6 @@ class ObservationsCfg:
             self.enable_corruption = False
             self.concatenate_terms = True
 
-    # obstacle positions
-    @configclass
-    class ObstacleControlCfg(ObsGroup):
-        """Observations for obstacle group."""
-
-        position_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "sfm_obstacle_target_pos"})
-
-        def __post_init__(self):
-            self.enable_corruption = False
-            self.concatenate_terms = True
-
-    # @configclass
-    # class DataLoggingCfg(ObsGroup):
-    #     """Observations for data logging."""
-    #     # Positions
-    #     robot_position = ObsTerm(func=mdp.metrics_robot_position)
-    #     start_position = ObsTerm(func=mdp.metrics_start_position)
-    #     goal_position = ObsTerm(func=mdp.metrics_goal_position)
-    #     # Path Length
-    #     path_length = ObsTerm(func=mdp.metrics_path_length)
-    #     # Episode Signals
-    #     timeout_signal = ObsTerm(func=mdp.metrics_timeout_signal)
-    #     termination_signal = ObsTerm(func=mdp.metrics_termination_signal)
-    #     dones_signal = ObsTerm(func=mdp.metrics_dones_signal)
-    #     goal_reached = ObsTerm(
-    #         func=mdp.metrics_goal_reached, params={"distance_threshold": DISTANCE_THRESHOLD, "speed_threshold": SPEED_THRESHOLD}
-    #     )  # do not care about speed
-    #     undesired_contacts = ObsTerm(
-    #         func=mdp.metrics_undesired_contacts,
-    #         params={"threshold": 0.01, "body_names": [".*THIGH", ".*HIP", ".*SHANK", "base"]},
-    #     )
-    #     episode_length = ObsTerm(func=mdp.metrics_episode_length)
-
-    #     # For Computing Rewards
-    #     robot_position_history = ObservationHistoryTermCfg(
-    #         func=mdp.ObservationHistory,
-    #         params={"method": "get_history_of_positions"},
-    #         # params={"kwargs" : {"method": "get_history_of_positions"}},
-    #         history_length_actions=10,
-    #         history_length_positions=10,
-    #         history_time_span_positions=5,
-    #         history_time_span_actions=5
-    #     )
-        
-    #     def __post_init__(self):
-    #         self.enable_corruption = False
-    #         self.concatenate_terms = False
-
     @configclass
     class TeacherPolicyObsCfg(ObsGroup):
         """Observations for the teacher policy"""
@@ -486,25 +438,27 @@ class ObservationsCfg:
             func=mdp.generated_commands_reshaped, params={"command_name": "robot_goal", "flatten": True}
         )
 
-        cpg_state = ObsTerm(func=mdp.cgp_state)
+        # cpg_state = ObsTerm(func=mdp.cgp_state)
 
-        # lidar_distances_history = LidarHistoryTermCfg(
-        #     func=mdp.LidarHistory,
-        #     params={"method": "get_history"},
-        #     history_length=10,
-        #     history_time_span=5,
-        #     # decimation=1,
-        #     sensor_cfg=SceneEntityCfg("lidar"),
-        #     return_pose_history=True,
-        # )
+        joint_pos = ObsTerm(
+            func=mdp.joint_pos,
+        )
+
+        joint_vel = ObsTerm(
+            func=mdp.joint_vel,
+        )
 
         base_lin_vel = ObsTerm(
             func=mdp.base_lin_vel,
+            noise=Unoise(n_min=-0.1, n_max=0.1),
         )
 
         base_ang_vel = ObsTerm(
             func=mdp.base_ang_vel,
+            noise=Unoise(n_min=-0.2, n_max=0.2),
         )
+
+        actions = ObsTerm(func=mdp.last_action)
 
         semantic_map = SemanticMapObsCfg(
             func=mdp.SemanticMapObs,
@@ -514,7 +468,7 @@ class ObservationsCfg:
             asset_cfg=SceneEntityCfg("robot"),
             obstacle_cfg=SceneEntityCfg("sfm_obstacle"),
             obs_range=[10.0, 10.0],
-            obstacle_buffer_radius=1.2,  # in m
+            obstacle_buffer_radius=0.8,  # in m
             plot_env_id=27,
             debug_plot=False,  # TODO: remove before training slows down the training time
         )
@@ -526,12 +480,6 @@ class ObservationsCfg:
     # # observation groups
     # # observations for the low-level pretrained policy (not obs of the actual agent)
     low_level_policy: LocomotionPolicyCfg = LocomotionPolicyCfg()
-
-    # # obstacles
-    sfm_obstacle_control_obs: ObstacleControlCfg = ObstacleControlCfg()
-
-    # # logging
-    # metrics: DataLoggingCfg = DataLoggingCfg()
 
     # policy
     policy: ObsGroup = TeacherPolicyObsCfg()
