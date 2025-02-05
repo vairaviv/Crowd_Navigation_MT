@@ -232,7 +232,7 @@ class SemanticGoalCommand(GoalCommandBaseTerm):
                 # if self.pos_spawn_w[]
             except IndexError:
                 print("[DEBUG]: SemanticGoalCommand: the root position of the robot is at an invalid position")
-                random_idx = torch.randint(0, self.valid_pos_w.shape[0], (len(env_ids),))
+                random_idx = torch.randint(1, self.valid_pos_w.shape[0] - 1, (len(env_ids),))
             
             if torch.any(
                 torch.isclose(self.valid_pos_w[random_idx, 0], self.pos_spawn_w[env_ids, 0], 1e-4) & 
